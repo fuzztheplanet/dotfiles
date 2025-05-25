@@ -27,7 +27,7 @@ $ ./manage.sh help
 $ ./manage.sh list profiles/arch-laptop
 $ ./manage.sh install profiles/arch-laptop all # root privileges required
 $ ./manage.sh deploy profiles/arch-laptop all
-#+begin_src
+#+end_src
 
 * Content
 *** bash
