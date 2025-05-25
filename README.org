@@ -1,0 +1,85 @@
+#+TITLE: My Dotfiles
+#+OPTIONS: toc:nil num:nil
+
+These are my personal configuration files (aka /dotfiles/) for Unix-based
+systems. More specifically, they are mainly used on ArchLinux desktops, laptops
+and virtual machines. They feature /i3/ as window manager, /urxvt/ as terminal
+emulator, /emacs/ as text editor, /bash/ and plenty of other fun projects.
+
+I stole a lot of ideas for this setup from some great other people, feel free to
+do the same here :)
+
+*Warning:* this repository is a contant work-in-progress. Some configuration
+files might not work out of the box or be well-documented. You are warned!
+
+* Usage
+
+There is a =manage.sh= script which will symlink the /dotfiles/ according to the
+directives from the =profiles/profile-*= via the /deploy/ command. The /install/
+command will install packages and perform any required system-wide setup
+actions. The /remove/ command will delete the deployed files and /uninstall/
+will get rid of the packages installed by the /dotfiles/.
+
+#+begin_src shell
+$ git clone https://github.com/skw-dev/dotfiles ~/.dotfiles
+$ cd ~/.dotfiles
+$ ./manage.sh help
+$ ./manage.sh list profiles/arch-laptop
+$ ./manage.sh install profiles/arch-laptop all # root privileges required
+$ ./manage.sh deploy profiles/arch-laptop all
+#+begin_src
+
+* Content
+*** bash
+
+Pretty classic *bash* configuration which includes a few convenient aliases and functions
+that I use regularly.
+
+*** bin
+
+Some utility scripts that I use more or less frequently. Careful, they might
+be poorly written and not maintained.
+
+*** emacs
+
+Details about my Emacs configuration are available in the main configuration
+file [[./emacs/skywhi.org][here]].
+
+*** git
+
+Git configuration with support for GPG signatures and a few aliases and options
+for personal convenience.
+
+*** gnupg
+
+A standard configuration with decent settings to get started. *Disclaimer*: I am
+not your cryptographer, always double-check everything according to best
+practices.
+
+*** i3
+
+Pretty standard [[https://i3wm.org/][i3]] setup, it uses scratchpads and a few auto-starting
+programs. It has two different /i3status/ configuration files, one for
+desktops and one for laptops.
+
+*** irssi
+
+Simple [[https://irssi.org/][irssi]] configuration.
+
+*** newsboat
+
+My [[https://newsboat.org/][newsboat]] configuration for reading RSS feeds.
+
+*** ranger
+
+Pretty standard configuration for the [[https://github.com/ranger/ranger][ranger]] file manager.
+
+*** tmux
+
+I use scripts from =bin/tmux-*= to load sessions with pre-defined layouts.
+
+*** xorg
+
+Contains everything related to /X11/. There's a /xinitrc/, a /Xresources/ with
+/urxvt/ configuration and a custom color scheme derived from solarized, some
+wallpapers, /xscreensaver/, etc.

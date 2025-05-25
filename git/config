@@ -1,0 +1,33 @@
+[user]
+    name       = fuzztheplanet
+    email      = skywhi@skywhi.net
+    signingkey = C78DFA2BC8525BE3
+
+[init]
+    defaultBranch = main
+
+[core]
+    whitespace = fix,-indent-with-non-tab,trailing-space,cr-at-eol
+
+[commit]
+    gpgSign = true
+
+[push]
+    default = matching
+
+[alias]
+    a   = add --all
+    ai  = add -i
+    b   = branch
+    bd  = branch -d
+    bdd = branch -D
+    c   = commit
+    ca  = commit -a
+    cm  = commit -m
+    cam = commit -am
+    l  = log --oneline
+    lg = log --oneline --graph --decorate
+    o  = checkout
+    ob = checkout -b
+    s  = show
+    ss = status

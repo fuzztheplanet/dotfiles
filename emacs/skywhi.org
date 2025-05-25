@@ -1,0 +1,1959 @@
+#+TITLE: Personal Emacs Config
+#+STARTUP: overview
+#+OPTIONS: toc:2 num:nil H:8
+#+OPTIONS: tags:nil
+#+OPTIONS: html-postamble:nil
+
+* About
+:PROPERTIES:
+:CUSTOM_ID: About
+:END:
+
+This is my attempt at a self-documented Emacs configuration. It is aiming
+towards programming (C, Python, Haskell, Lisps, Shell and more) and document
+writing with org-mode. I have stolen a lot of this stuff from some very kind
+people, feel free to do the same here :)
+
+The usual disclaimer applies: note that this is a constant work-in-progress
+setup, you should expect it to be quite hacky and not thoroughly tested.
+Always refer to the documentation when in doubt. Now please, have at it!
+
+Resources and similar setups that helped me build my own, you should check
+them out!
+
+* Prelude
+:PROPERTIES:
+:CUSTOM_ID: Prelude
+:END:
+*** Emacs server
+:PROPERTIES:
+:CUSTOM_ID: Prelude-server
+:END:
+
+Starting Emacs as a server allows to spawn instantly multiple clients
+sharing the same buffers without the need to reload the configuration file
+every time. I then use ~alias emc='emacsclient -c -a ""'~ in my shell to
+start a new Emacs client in the terminal.
+
+#+begin_src emacs-lisp :tangle yes
+(require 'server)
+(unless (server-running-p) (server-start))
+#+end_src
+
+*** User files
+:PROPERTIES:
+:CUSTOM_ID: Prelude-files
+:END:
+
+Define the files and directories that will be used across the configuration,
+also add custom elisp files to =load-path= while we are at it.
+
+#+begin_src emacs-lisp :tangle yes
+(setq skw/d-base     user-emacs-directory
+      skw/f-config   (concat skw/d-base "skywhi.org")
+      skw/d-elisp    (concat skw/d-base "my_elisp/")
+      skw/d-snippets (concat skw/d-base "my_snippets/")
+      skw/d-saves    (concat skw/d-base "saves/")
+      skw/f-savehist (concat skw/d-base "savehist"))
+
+(when (and (boundp 'skw/d-elisp)
+           (file-readable-p skw/d-elisp))
+  (add-to-list 'load-path skw/d-elisp))
+
+;; (defconst user-init-dir
+;;     (cond ((boundp 'user-emacs-directory)
+;;            user-emacs-directory)
+;;          ((boundp 'user-init-directory)
+;;                user-init-directory)
+;;              (t "~/.emacs.d/")))
+
+
+;; (defun load-user-file (file)
+;;     (interactive "f")
+;;       "Load a file in current user's configuration directory"
+;;    (load-file (expand-file-name file user-init-dir)))
+
+;; (load-user-file "my_elisp/org-archive-subtree-hierarchical.el")
+
+#+end_src
+
+*** Customize file
+:PROPERTIES:
+:CUSTOM_ID: Prelude-customize
+:END:
+
+Use a =custom.el= file instead of cluttering our beloved =init.el=.
+
+#+begin_src emacs-lisp :tangle yes
+(setq custom-file (expand-file-name "custom.el" user-emacs-directory))
+(unless (file-exists-p custom-file)
+  (write-region "" nil custom-file))
+(load custom-file)
+#+end_src
+
+*** Package init
+:PROPERTIES:
+:CUSTOM_ID: Prelude-package
+:END:
+
+I get my packages from MELPA and ORG. The only package that we need to
+install manually is =use-package= which will then take care of installing
+the remaining packages (with the =:ensure t= flag) for us.
+
+#+begin_src emacs-lisp :tangle yes
+(require 'package)
+
+(add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/"))
+(add-to-list 'package-archives '("org" . "https://orgmode.org/elpa/"))
+
+(package-initialize)
+(when (not package-archive-contents)
+  (package-refresh-contents))
+
+(unless (package-installed-p 'use-package)
+  (package-refresh-contents)
+  (package-install 'use-package))
+
+(eval-when-compile
+  (require 'use-package)
+  (setq use-package-verbose t))
+#+end_src
+
+Let's always compile packages thanks to =auto-compile= to make sure that
+Emacs never loads outdated code.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package auto-compile
+  :ensure t
+  :config
+  (setq load-prefer-newer t)
+  (auto-compile-on-load-mode))
+#+end_src
+
+*** Elisp utiliy libraries
+
+Gimme [[https://github.com/magnars/dash.el][dash]].
+
+#+begin_src emacs-lisp :tangle yes
+(use-package dash
+  :ensure t)
+#+end_src
+
+* General settings
+:PROPERTIES:
+:CUSTOM_ID: General
+:END:
+*** Start-up and some sane defaults
+:PROPERTIES:
+:CUSTOM_ID: General-startup
+:END:
+***** start-up screen
+
+#+begin_src emacs-lisp :tangle yes
+(setq inhibit-startup-screen t)
+(setq initial-scratch-message ";; Aloha !\n")
+#+end_src
+
+***** default modes and hooks
+
+These are the built-in modes and hooks that I like to have enabled by
+default.
+
+#+begin_src emacs-lisp :tangle yes
+(setq default-major-mode 'text-mode)
+(auto-compression-mode t)        ;; Handle compressed files
+(file-name-shadow-mode t)        ;; Better minibuffer filenames
+(save-place-mode t)              ;; Remember point location
+(global-auto-revert-mode t)      ;; Automagically refresh buffers
+(global-subword-mode t)          ;; Treat camelCase as 2 words
+(global-font-lock-mode t)        ;; Syntax highlighting
+(global-prettify-symbols-mode t) ;; Prettify things if possible
+
+(add-hook 'find-file-hook 'goto-address-mode)      ;; Prettify urls and emails
+(add-hook 'find-file-hook 'goto-address-prog-mode) ;; Also in strings and comments
+(add-hook 'text-mode-hook 'turn-on-auto-fill)      ;; Automatically wrap text
+(add-hook 'before-save-hook 'whitespace-cleanup)   ;; Delete extra whitespaces
+#+end_src
+
+***** encoding
+
+Let's be paranoid and force some utf-8 goodness everywhere we can.
+
+#+begin_src emacs-lisp :tangle yes
+(set-language-environment "UTF-8")
+(set-default-coding-systems 'utf-8)
+(set-terminal-coding-system 'utf-8)
+(set-keyboard-coding-system 'utf-8)
+(prefer-coding-system 'utf-8)
+(setq-default buffer-file-coding-system 'utf-8)
+#+end_src
+
+***** miscellaneous options
+
+Change various small options for convenience.
+
+#+begin_src emacs-lisp :tangle yes
+(defalias 'yes-or-no-p 'y-or-n-p) ;; Save ourselves some precious keystrokes
+(setq echo-keystrokes 0.1         ;; Shorter display delay
+      calendar-week-start-day 1   ;; Start week on Monday
+      use-dialog-box nil          ;; Discrete!
+      ring-bell-function 'ignore  ;; And quiet!
+      visible-bell t)             ;; Blink instead of ring when bell is on
+#+end_src
+
+*** UI tweaks
+:PROPERTIES:
+:CUSTOM_ID: General-ui
+:END:
+***** appearance
+
+Get rid of the toolbars and time display but keep the line/column numbers
+in the status line.
+
+#+begin_src emacs-lisp :tangle yes
+(menu-bar-mode -1)
+(blink-cursor-mode t)
+(line-number-mode t)
+(column-number-mode t)
+(global-hl-line-mode 0)
+
+(setq display-time-mode nil
+      display-time-default-load-average nil)
+
+;; In case I happen to run a GUI Emacs #YouNeverKnow
+(when window-system
+  (tool-bar-mode -1)
+  (scroll-bar-mode -1)
+  (global-hl-line-mode))
+#+end_src
+
+***** frames
+
+Set the frame title and always start fullscreen frames.
+
+#+begin_src emacs-lisp :tangle yes
+(setq frame-title-format '(buffer-file-name "%f" ("%b")))
+(modify-all-frames-parameters '((fullscreen . maximized)))
+#+end_src
+
+***** fonts
+
+I demand pretty text!
+
+#+begin_src emacs-lisp :tangle yes
+(font-lock-ensure)
+(setq font-lock-maximum-decoration t)
+#+end_src
+
+***** windows
+
+Move between windows with =C-x <key>=.
+
+#+begin_src emacs-lisp :tangle yes
+
+(use-package buffer-move
+  :ensure t
+  :bind (("C-x <up>" .    'buf-move-up)
+         ("C-x <down>" .  'buf-move-down)
+         ("C-x <left>" .  'buf-move-left)
+         ("C-x <right>" . 'buf-move-right)))
+#+end_src
+
+The built-in =winner-mode= allows to undo and redo window layouts with =C-c
+<left/right>=.
+
+#+begin_src emacs-lisp :tangle yes
+(when (fboundp 'winner-mode)
+  (winner-mode 1))
+#+end_src
+
+Delete all windows except the current one with =C-z=.
+
+#+begin_src emacs-lisp :tangle yes
+(global-set-key (kbd "C-z") 'delete-other-windows)
+#+end_src
+
+***** scrolling
+
+Sopother scrolling options and keybindings to scroll unfocused windows.
+
+#+begin_src emacs-lisp :tangle yes
+(setq redisplay-dont-pause t
+      scroll-margin 5
+      scroll-step 2
+      scroll-preserve-screen-position 1)
+
+(defun skw/scroll-other-window-up ()
+  (interactive)
+  (if (boundp 'scroll-step)
+      (scroll-other-window scroll-step)
+    (scroll-other-window 1)))
+
+(defun skw/scroll-other-window-down ()
+  (interactive)
+  (if (boundp 'scroll-step)
+      (scroll-other-window-down scroll-step)
+    (scroll-other-window-down 1)))
+
+(global-set-key (kbd "C-x v <up>")   'skw/scroll-other-window-down)
+(global-set-key (kbd "C-x v <down>") 'skw/scroll-other-window-up)
+(global-set-key (kbd "C-v") 'scroll-down)
+(global-set-key (kbd "M-n") 'scroll-up)
+#+end_src
+
+***** mouse
+
+#+begin_src emacs-lisp :tangle yes
+(require 'mouse)
+(xterm-mouse-mode t)
+(defun track-mouse (e))
+(setq mouse-sel-mode t)
+(global-set-key (kbd "<mouse-4>") 'scroll-down)
+(global-set-key (kbd "<mouse-5>") 'scroll-up)
+(setq mouse-wheel-scroll-amount '(1 ((shift) . 1) ((control) . nil)))
+(setq mouse-wheel-progressive-speed nil)
+#+end_src
+
+***** themes
+
+A safer =load-theme= function that disables previously loaded themes before
+executing a new one.
+
+#+begin_src emacs-lisp :tangle yes
+(defadvice load-theme
+    (before disable-before-load (theme &optional no-confirm no-enable)
+            activate)
+  (mapc 'disable-theme custom-enabled-themes))
+#+end_src
+
+Some themes from [[https://protesilaos.com/emacs/ef-themes][ef-themes]] by [[https://protesilaos.com/][Protesilaos Stavrou]] that I like with custom
+keybindings to switch between them.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package ef-themes
+  :ensure t
+  :bind (("C-c t t" . 'skw/disable-custom-themes)
+         ("C-c t d" . 'skw/ef-load-dark)
+         ("C-c t b" . 'skw/ef-load-bio))
+  :config
+  (defun skw/disable-custom-themes ()
+    (interactive)
+    (dolist (i custom-enabled-themes)
+      (disable-theme i)))
+
+  (defun skw/ef-load-bio ()
+    (interactive)
+    (load-theme 'ef-bio))
+
+  (defun skw/ef-load-dark ()
+    (interactive)
+    (load-theme 'ef-dark)))
+#+end_src
+
+***** =diminish=
+
+=diminish= lets us hide unwanted modes from the mode-line.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package diminish
+  :ensure t)
+#+end_src
+
+***** =smart-mode-line=
+
+Better looking mode-line, other themes are included for testing.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package smart-mode-line
+  :ensure t
+  :init
+  (setq sml/shorten-directory t
+        sml/shorten-modes t)
+  :config
+  (setq sml/theme 'light)
+  ;; (setq sml/theme 'respectful)
+  ;; (setq sml/theme 'dark)
+  (sml/setup))
+#+end_src
+
+***** =volatile-highlights=
+
+This [[https://www.emacswiki.org/emacs/VolatileHighlights][package]] highlights recent region-related changes like /undo/ or /yank/.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package volatile-highlights
+  :ensure t
+  :diminish volatile-highlights-mode
+  :config
+  (volatile-highlights-mode t))
+#+end_src
+
+*** Emacs behavior
+:PROPERTIES:
+:CUSTOM_ID: General-behavior
+:END:
+***** rebind =M-x=
+
+I define them here but they will be overwritten by the =ivy= package
+later on.
+
+#+begin_src emacs-lisp :tangle yes
+(global-set-key (kbd "M-x")   'execute-extended-command)
+(global-set-key (kbd "C-c m") 'execute-extended-command)
+#+end_src
+
+***** =ivy= + =swiper= + =counsel= = <3
+
+[[https://github.com/abo-abo/swiper][Ivy]] ([[https://oremacs.com/swiper/][documentation]]) is an interactive interface for completion in Emacs. It
+comes along with =counsel= for Emacs command completion and =swiper= as an
+alternative to =isearch=. Together, they provide a more comprehensive,
+graphically intuitive and effective to the vanilla Emacs experience.
+
+The snippets below are mostly taking from [[https://protesilaos.com/][Protesilaos Stavrou]]'s setup
+(especially this [[https://github.com/protesilaos/dotfiles/blob/aa8a5d96b013462cfa622e396e65abb66725318a/emacs/.emacs.d/emacs-init.org][commit]], as his configuration has changed since then).
+Protesilaos provides awesome Emacs-related content and heavily contributes to
+the Emacs ecosystem , make sure you check it out!
+
+https://protesilaos.com/codelog/2019-12-15-emacs-ivy-fzf-rg/
+
+#+begin_src emacs-lisp :tangle yes
+(use-package ivy
+  :ensure t
+  :diminish
+  :bind (("C-s s" . swiper)
+
+         :map ivy-minibuffer-map
+         ("TAB" . ivy-alt-done)
+         ("C-f" . ivy-alt-done)
+         ("C-l" . ivy-alt-done)
+         ("C-j" . ivy-next-line)
+         ("C-n" . ivy-next-line)
+         ("C-k" . ivy-previous-line)
+         ("C-p" . ivy-previous-line)
+
+         :map ivy-switch-buffer-map
+         ("C-k" . ivy-previous-line)
+         ("C-l" . ivy-done)
+         ("C-d" . ivy-switch-buffer-kill)
+
+         :map ivy-reverse-i-search-map
+         ("C-k" . ivy-previous-line)
+         ("C-d" . ivy-reverse-i-search-kill))
+
+  :init
+  (global-unset-key (kbd "C-s"))
+  (ivy-mode 1)
+
+  :config
+  (defun skw/ivy-open-current-typed-path ()
+    (interactive)
+    (when ivy--directory
+      (let* ((dir ivy--directory)
+             (text-typed ivy-text)
+             (path (concat dir text-typed)))
+        (delete-minibuffer-contents)
+        (ivy--done path))))
+
+  (setq ivy-use-virtual-buffers t
+        ivy-count-format "(%d/%d) "
+        ivy-wrap t)
+
+  (set-face-attribute 'highlight nil :background "color-40")
+  (set-face-attribute 'ivy-current-match nil :extend t :background "color-40" :foreground "black")
+  (set-face-attribute 'ivy-cursor nil :background "cyan" :foreground "white")
+  (set-face-attribute 'ivy-minibuffer-match-face-1 nil :background "brightmagenta" :foreground "white")
+  (set-face-attribute 'ivy-minibuffer-match-face-2 nil :background "brightmagenta" :foreground "white" :weight 'bold))
+
+(use-package ivy-rich
+  :ensure t
+  :config
+  (setcdr (assq t ivy-format-functions-alist) #'ivy-format-function-line)
+  (ivy-rich-mode 1))
+
+
+(use-package prescient
+  :ensure t
+  :custom
+  (prescient-history-length 100)
+  (prescient-save-file "~/.emacs.d/prescient-items")
+  (prescient-filter-method '(fuzzy initialism regexp))
+  :config
+  (prescient-persist-mode 1))
+
+(use-package ivy-prescient
+  :ensure t
+  :after (prescient ivy)
+  :custom
+  (ivy-prescient-sort-commands
+   '(:not swiper ivy-switch-buffer counsel-switch-buffer))
+  (ivy-prescient-retain-classic-highlighting t)
+  (ivy-prescient-enable-filtering t)
+  (ivy-prescient-enable-sorting t)
+  :config
+  (defun skw/ivy-prescient-filters (str)
+    "Specify an exception for `prescient-filter-method'.
+This new rule can be used to tailor the results of individual
+Ivy-powered commands, using `ivy-prescient-re-builder'."
+    (let ((prescient-filter-method '(literal regexp)))
+      (ivy-prescient-re-builder str)))
+
+  (setq ivy-re-builders-alist
+        '((counsel-rg . skw/ivy-prescient-filters)
+          (counsel-grep . skw/ivy-prescient-filters)
+          (counsel-yank-pop . skw/ivy-prescient-filters)
+          (swiper . skw/ivy-prescient-filters)
+          (swiper-isearch . skw/ivy-prescient-filters)
+          (swiper-all . skw/ivy-prescient-filters)
+          (t . ivy-prescient-re-builder)))
+
+  (ivy-prescient-mode 1))
+#+end_src
+
+#+begin_src emacs-lisp :tangle yes
+(use-package counsel
+  :ensure t
+  :bind (("M-x" . counsel-M-x)
+         ("C-c m" . counsel-M-x)
+         ("C-x b" . counsel-ibuffer)
+         ("C-x C-f" . counsel-find-file)
+         ("C-x M-f" . find-file-other-window)
+         ("C-M-l" . counsel-imenu)
+         ("C-h f" . counsel-describe-function)
+         ("C-h v" . counsel-describe-variable)
+
+         ("C-s r" . counsel-rg)
+         ("C-s z" . skw/counsel-fzf-rg-files)
+
+         ("M-y" . counsel-yank-pop)
+
+         :map minibuffer-local-map
+         ("C-r" . 'counsel-minibuffer-history)
+
+         :map counsel-find-file-map
+         ("C-d" . 'skw/ivy-open-current-typed-path))
+
+  :config
+
+  (defun skw/counsel-fzf-rg-files (&optional input dir)
+    "Run `fzf' in tandem with `ripgrep' to find files in the
+present directory.  Both of those programs are external to
+Emacs."
+    (interactive)
+    (let ((process-environment
+           (cons (concat "FZF_DEFAULT_COMMAND=rg -Sn --color never --files --no-follow --hidden")
+                 process-environment)))
+      (counsel-fzf input dir)))
+
+  (defun skw/counsel-rg-dir (arg)
+    "Specify root directory for `counsel-rg'."
+    (let ((current-prefix-arg '(4)))
+      (counsel-rg ivy-text nil "")))
+
+  (defun skw/counsel-fzf-dir (arg)
+    (skw/counsel-fzf-rg-files ivy-text
+                              (read-directory-name
+                               (concat (car (split-string counsel-fzf-cmd))
+                                       " in directory: "))))
+
+
+  (setq ivy-initial-inputs-alist nil
+
+        ;; counsel yank options
+        counsel-yank-pop-preselect-last t
+        counsel-yank-pop-separator "\n—————————\n"
+
+        ;; commands used by counsel
+        counsel-rg-base-command
+        "rg -SHn --no-heading --color never --no-follow --hidden %s"
+        counsel-find-file-occur-cmd
+        "ls -a | grep -i -E '%s' | tr '\\n' '\\0' | xargs -0 ls -d --group-directories-first")
+
+  (let ((done (where-is-internal #'ivy-done     ivy-minibuffer-map t))
+        (alt  (where-is-internal #'ivy-alt-done ivy-minibuffer-map t)))
+    (define-key counsel-find-file-map done #'ivy-alt-done)
+    (define-key counsel-find-file-map alt  #'ivy-done))
+
+  (ivy-add-actions
+   'counsel-fzf
+   '(("r" skw/counsel-fzf-dir "change root directory")
+     ("g" skw/counsel-rg-dir "search with rg"))))
+
+(ivy-add-actions
+ 'counsel-rg
+ '(("r" skw/counsel-rg-dir "change root directory")
+   ("z" skw/counsel-fzf-dir "find files with fzf in root directory")))
+
+(use-package flx
+  :after ivy
+  :defer t
+  :init
+  (setq ivy-flx-limit 10000))
+#+end_src
+
+***** exiting Emacs
+
+
+=C-x C-x= will shutdown emacs-server if the current frame is the last
+instance. =C-x M-x= will leave the server running in the background instead.
+
+#+begin_src emacs-lisp :tangle yes
+(global-set-key (kbd "C-x 5 0") 'delete-frame)
+(global-set-key (kbd "C-x M-x") 'delete-frame)
+(global-set-key (kbd "C-x C-c")
+                (lambda (arg)
+                  (interactive "P")
+                  (if arg
+                      (call-interactively 'save-buffers-kill-emacs)
+                    (save-buffers-kill-terminal))))
+#+end_src
+
+*** Files
+:PROPERTIES:
+:CUSTOM_ID: General-files
+:END:
+***** get current directory
+
+#+begin_src emacs-lisp :tangle yes
+(defun skw/get-file-directory ()
+  "Return the full path to the current open file, without the file name."
+  (if (null load-file-name)
+      (expand-file-name default-directory)
+    (file-name-directory load-file-name)))
+#+end_src
+
+***** open if file is readable
+
+Simply open a file if it exists already, otherwise don't create a new one.
+
+#+begin_src emacs-lisp :tangle yes
+(defun skw/open-file-readable (fname)
+  "Open a file, does not create a new file if it does not exist"
+  (interactive)
+  (if (file-readable-p fname)
+      (progn
+        (find-file fname)
+        (message (format "Opened %s" fname)))
+    (message (format "File %s does not exist" fname))))
+#+end_src
+
+***** quickly access files
+
+Here I add some files to quickly open them with =C-c f <f>=. Like this
+configuration file.
+
+#+begin_src emacs-lisp :tangle yes
+(global-set-key (kbd "C-c f f") (lambda () (interactive)
+                                  (skw/open-file-readable skw/f-config)))
+#+end_src
+
+***** backups
+
+Store backup files in a =~/.saves= directory and mini-buffer history into
+a =~/.emacs.d/savehist= file.
+
+#+begin_src emacs-lisp :tangle yes
+(setq backup-directory-alist `(("." . "~/.saves"))
+      backup-by-copying t
+      auto-save-default t
+      auto-save-timeout 20
+      auto-save-interval 200
+      version-control t
+      kept-new-versions 6
+      kept-old-versions 2
+      delete-old-versions t)
+
+(setq savehist-additional-variables
+      '(search-ring regexp-search-ring)
+      savehist-file skw/f-savehist)
+(savehist-mode t)
+#+end_src
+
+*** Buffers
+:PROPERTIES:
+:CUSTOM_ID: General-buffers
+:END:
+***** manually revert buffer
+
+#+begin_src emacs-lisp :tangle yes
+(global-set-key (kbd "<f5>") 'revert-buffer)
+#+end_src
+
+***** minibuffer
+
+#+begin_src emacs-lisp :tangle yes
+(setq history-length 250
+      history-delete-duplicates t
+      enable-recursive-minibuffers t)
+
+(add-hook 'minibuffer-exit-hook
+          '(lambda ()
+             (let ((buffer "*Completions*"))
+               (and (get-buffer buffer) (kill-buffer buffer)))))
+#+end_src
+
+***** =miniedit=
+
+With =miniedit= it is possible to edit large minibuffer commands
+by opening a dedicated buffer with =C-M-e=.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package miniedit
+  :ensure t
+  :commands minibuffer-edit
+  :init
+  (miniedit-install))
+#+end_src
+
+***** =ibuffer=
+
+For a better buffer list/menu.
+
+#+begin_src emacs-lisp :tangle yes
+(defalias 'list-buffers 'ibuffer)
+(add-hook 'ibuffer-mode-hook
+          (lambda ()
+            (ibuffer-auto-mode 1)
+            (ibuffer-switch-to-saved-filter-groups "default")))
+
+(setq ibuffer-show-empty-filter-groups nil
+      ibuffer-expert t)
+
+(setq ibuffer-saved-filter-groups
+      (quote (("default"
+               ("c"
+                (mode . c-mode))
+
+               ("php"
+                (mode . php-mode))
+
+               ("python"
+                (mode . python-mode))
+
+               ("haskell"
+                (mode . haskell-mode))
+
+               ("org" (or
+                       (mode . org-mode)
+                       (name . "^.*org$")
+                       (name . "^\\*Calendar\\*$")
+                       (name . "^\\*Org Agenda\\*$")))
+
+               ("rg"
+                (mode . ripgrep-mode))
+
+               ("sh"
+                (mode . sh-mode))
+
+               ("emacs" (or
+                         (name . "^\\*scratch\\*$")
+                         (name . "^\\*Backtrace\\*$")
+                         (name . "^\\*Help\\*$")
+                         (name . "^\\*Messages\\*$")
+                         (name . "^\\*Compile-Log\\*$")))))))
+
+(use-package ibuffer-projectile
+  :ensure t
+  :config
+  (setq ibuffer-formats
+      '((mark modified read-only " "
+              (name 18 18 :left :elide)
+              " "
+              (size 9 -1 :right)
+              " "
+              (mode 16 16 :left :elide)
+              " "
+              project-relative-file)))
+  (add-hook 'ibuffer-hook
+            (lambda ()
+              (ibuffer-projectile-set-filter-groups)
+              (unless (eq ibuffer-sorting-mode 'alphabetic)
+                (ibuffer-do-sort-by-alphabetic)))))
+#+end_src
+
+***** =uniquify=
+
+Makes buffer names unique when needed to avoid possible confusions.
+
+#+begin_src emacs-lisp :tangle yes
+(require 'uniquify)
+(setq  uniquify-buffer-name-style 'post-forward
+       uniquify-separator ":"
+       uniquify-after-kill-buffer-p t
+       uniquify-ignore-buffers-re "^\\*")
+#+end_src
+
+***** =projectile=
+
+#+begin_src emacs-lisp :tangle yes
+(use-package projectile
+  :diminish projectile-mode
+  :ensure t
+  :bind-keymap
+  ("C-c p" . projectile-command-map)
+  ("M-p" . projectile-command-map)
+  :config (projectile-mode)
+  ;; ignoring specific buffers by name
+  (setq projectile-globally-ignored-buffers
+        '("*scratch*"
+          "*lsp-log*")
+
+  ;; ignoring buffers by their major mode
+  projectile-globally-ignored-modes
+        '("erc-mode"
+          "help-mode"
+          "completion-list-mode"
+          "Buffer-menu-mode"
+          "gnus-.*-mode"
+          "occur-mode")
+
+  projectile-sort-order 'recently-active
+  projectile-enable-caching t
+  projectile-dynamic-mode-line t
+  projectile-auto-cleanup-known-projects t))
+
+;; (use-package counsel-projectile
+;;   :ensure t
+;;   :after projectile
+;;   :bind (("C-M-p" . counsel-projectile-find-file))
+;;   :config
+;;   (counsel-projectile-mode))
+#+end_src
+
+*** Editing
+:PROPERTIES:
+:CUSTOM_ID: General-editing
+:END:
+***** autofill, indent, tabs, whitespaces & friends
+
+Some "textual" cosmetics.
+
+#+begin_src emacs-lisp :tangle yes
+(global-set-key (kbd "<f7>")   'toggle-truncate-lines)
+(global-set-key (kbd "S-<f7>") 'auto-fill-mode)
+(global-set-key (kbd "C-c i")  'skw/cleanup-buffer-or-region)
+(global-set-key (kbd "C-c q")  'fill-paragraph)
+(global-set-key (kbd "M-q")    'fill-paragraph)
+
+(setq-default truncate-lines t
+              truncate-partial-width-windows nil
+              indent-tabs-mode nil
+              tab-width 4
+              fill-column 80
+              sentence-end-double-space nil
+              show-trailing-whitespace nil ;; edit???
+              require-final-newline nil)
+
+;; Indent
+(defun skw/indent-buffer ()
+  (interactive)
+  (indent-region (point-min) (point-max))
+  (message "Indented buffer"))
+
+(defun skw/indent-region ()
+  (interactive)
+  (indent-region (region-beginning) (region-end))
+  (message "Indented region"))
+
+;; Replace tabs by spaces
+(defun skw/untabify-buffer ()
+  (interactive)
+  (untabify (point-min) (point-max))
+  (message "Untabified buffer"))
+
+(defun skw/untabify-region ()
+  (interactive)
+  (untabify (region-beginning) (region-end))
+  (message "Untabified region"))
+
+;; Cleanup = untabify + indent + whitespaces
+(defun skw/cleanup-buffer ()
+  (interactive)
+  (skw/untabify-buffer)
+  (skw/indent-buffer)
+  (delete-trailing-whitespace)
+  (message "Cleaned-up buffer"))
+
+(defun skw/cleanup-region ()
+  (interactive)
+  (skw/untabify-region)
+  (skw/indent-region)
+  (delete-trailing-whitespace)
+  (message "Cleaned-up region"))
+
+;; All in one
+(defun skw/cleanup-buffer-or-region ()
+  (interactive)
+  (save-excursion
+    (if (region-active-p)
+        (skw/cleanup-region)
+      (skw/cleanup-buffer))))
+#+end_src
+
+***** case change
+
+#+begin_src emacs-lisp :tangle yes
+(global-set-key (kbd "M-l") 'downcase-word)
+(global-set-key (kbd "M-o") 'capitalize-word)
+(global-set-key (kbd "M-i") 'upcase-word)
+#+end_src
+
+***** copy/paste
+
+#+begin_src emacs-lisp :tangle yes
+(setq kill-ring-max 100
+      save-interprogram-paste-before-kill 1
+      yank-pop-change-selection t)
+#+end_src
+
+With this hack, if the region is empty then the current line is copied /
+killed instead. Makes you spare a few keystrokes.
+
+#+begin_src emacs-lisp :tangle yes
+(defadvice kill-ring-save (before slick-copy activate compile)
+  "When called interactively with no active region, copy a single line instead."
+  (interactive
+   (if mark-active
+       (progn
+         (message "Copied region")
+         (list (region-beginning) (region-end)))
+
+     (progn
+       (message "Copied line")
+       (list (line-beginning-position)
+             (line-beginning-position 2))))))
+
+(defadvice kill-region (before slick-cut activate compile)
+  "When called interactively with no active region, kill a single line instead."
+  (interactive
+   (if mark-active
+       (progn
+         (message "Killed region")
+         (list (region-beginning) (region-end)))
+
+     (progn
+       (message "Killed line")
+       (list (line-beginning-position)
+             (line-beginning-position 2))))))
+#+end_src
+
+Kill text from the current position to the beginning of line.
+
+#+begin_src emacs-lisp :tangle yes
+(global-set-key (kbd "M-k") 'skw/kill-to-bol)
+
+(defun skw/kill-to-bol ()
+  "Kill text from point to beginning of line."
+  (interactive)
+  (kill-region (point) (line-beginning-position)))
+#+end_src
+
+***** escape / unescape quotes
+
+Escape or unescape quotes in the selection. If no region is marked,
+applies to the current line instead.
+
+#+begin_src emacs-lisp :tangle yes
+;; thanks to https://ergoemacs.org/emacs/elisp_escape_quotes.html
+
+(defun skw/escape-quotes (@begin @end)
+  (interactive
+   (if (use-region-p)
+       (list (region-beginning) (region-end))
+     (list (line-beginning-position) (line-end-position))))
+  (save-excursion
+    (save-restriction
+      (narrow-to-region @begin @end)
+      (goto-char (point-min))
+      (while (search-forward "\"" nil t)
+        (replace-match "\\\"" "FIXEDCASE" "LITERAL"))))
+  (message "Escaped quotes"))
+
+(defun skw/unescape-quotes (@begin @end)
+  (interactive
+   (if (use-region-p)
+       (list (region-beginning) (region-end))
+     (list (line-beginning-position) (line-end-position))))
+  (save-excursion
+    (save-restriction
+      (narrow-to-region @begin @end)
+      (goto-char (point-min))
+      (while (search-forward "\\\"" nil t)
+        (replace-match "\"" "FIXEDCASE" "LITERAL"))))
+  (message "Unescaped quotes"))
+#+end_src
+
+***** goto-line
+
+#+begin_src emacs-lisp :tangle yes
+(global-set-key (kbd "C-x C-l") 'goto-line)
+#+end_src
+
+***** case manipulation
+
+#+begin_src emacs-lisp :tangle yes
+(global-set-key (kbd "C-x M-l") 'downcase-region)
+#+end_src
+
+***** macros
+
+#+begin_src emacs-lisp :tangle yes
+(global-set-key (kbd "<f3>") 'kmacro-start-macro-or-insert-counter)
+(global-set-key (kbd "<f4>") 'kmacro-end-or-call-macro)
+#+end_src
+
+***** mark & region
+
+#+begin_src emacs-lisp :tangle yes
+(global-set-key (kbd "C-x p")   'pop-to-mark-command)
+(global-set-key (kbd "C-x n n") 'narrow-to-region)
+(global-set-key (kbd "C-x n w") 'widen)
+
+(delete-selection-mode t)
+(transient-mark-mode t)
+(put 'narrow-to-region 'disabled nil)
+(setq select-active-regions t
+      set-mark-command-repeat-pop t)
+#+end_src
+
+***** parenthesis
+
+Quick and dirty style change to highlight and underline matching
+parentheses.
+
+#+begin_src emacs-lisp :tangle yes
+(require 'paren)
+(show-paren-mode 1)
+(set-face-background 'show-paren-match (face-background 'default))
+(set-face-foreground 'show-paren-match "#def")
+(set-face-attribute 'show-paren-match nil :underline t)
+#+end_src
+
+***** =company=
+
+I am using =company-mode= for auto-completion, switching it
+on/off with =<F11>= (current buffer) and =S-<F11>= (globally).
+Navigate between completions with =C-n= and =C-p= or with the
+up/down arrows.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package company
+  :ensure t
+  :diminish company-mode "Com"
+  :bind
+  (("<f10>"   . company-mode)
+   ("S-<f10>" . global-company-mode)
+   ("M-/" . company-complete)
+   ("<tab>" . company-indent-or-complete-common)
+
+   :map company-active-map
+   ("C-n" . company-select-next)
+   ("C-p" . company-select-previous)
+   ("C-d" . company-show-doc-buffer)
+   ("M-." . company-show-location))
+
+  :init
+  (setq company-tooltip-limit 20
+        company-show-numbers t
+        company-dabbrev-downcase nil
+        company-minimum-prefix-length 3
+        company-idle-delay 0.5
+        company-echo-delay 0)
+
+  (add-hook 'c-mode-common-hook 'company-mode)
+  (add-hook 'sgml-mode-hook 'company-mode)
+  (add-hook 'emacs-lisp-mode-hook 'company-mode)
+  (add-hook 'text-mode-hook 'company-mode)
+  (add-hook 'lisp-mode-hook 'company-mode)
+  (add-hook 'sh-mode-hook 'company-mode)
+  (add-hook 'org-mode-hook 'company-mode)
+
+  :config
+  (add-to-list 'company-backends 'company-math-symbols-unicode)
+  (global-company-mode))
+#+end_src
+
+Using [[https://github.com/company-mode/company-statistics][company-statistics]] to rearrange suggestions made by =company= by frequency
+of usage:
+
+#+begin_src emacs-lisp :tangle yes
+(use-package company-statistics
+  :ensure t
+  :after company
+  :config
+  (company-statistics-mode))
+#+end_src
+
+***** =ripgrep=
+
+#+begin_src emacs-lisp :tangle yes
+(use-package ripgrep
+  :ensure t
+  :bind
+  (("C-c d d" . ripgrep-regexp))
+  :config
+  (set-face-attribute 'ripgrep-match-face nil
+                      :foreground "dodger blue"
+                      :background "none")
+
+  (set-face-attribute 'ripgrep-hit-face nil
+                      :foreground "red"))
+#+end_src
+
+***** =flyspell=
+
+I use =flyspell= along with the =hunspell= backend to spellcheck a region/buffer
+(=C-c s=). This requires the [[https://archlinux.org/packages/extra/any/words/][words]] and [[https://archlinux.org/packages/extra/x86_64/hunspell/][hunspell]] packages on ArchLinux.
+
+#+begin_src emacs-lisp :tangle yes
+;; US, GB, FR and DE dictionaries
+(defun skw/flyspell-dict-american ()
+  (interactive)
+  (ispell-change-dictionary "en_US")
+  (setq ispell-alternate-dictionary "/usr/share/dict/american-english"))
+
+(defun skw/flyspell-dict-english ()
+  (interactive)
+  (ispell-change-dictionary "en_GB")
+  (setq ispell-alternate-dictionary "/usr/share/dict/british-english"))
+
+(defun skw/flyspell-dict-french ()
+  (interactive)
+  (ispell-change-dictionary "fr_FR")
+  (setq ispell-alternate-dictionary "/usr/share/dict/french"))
+
+(defun skw/flyspell-dict-german ()
+  (interactive)
+  (ispell-change-dictionary "de_DE")
+  (setq ispell-alternate-dictionary "/usr/share/dict/ngerman"))
+
+(defun skw/flyspell-buffer-or-region ()
+  "If region is active, calls flyspell-region.
+   Otherwise flyspell-buffer is called. "
+  (interactive)
+  (save-excursion
+    (if (region-active-p)
+        (progn
+          (flyspell-region (region-beginning) (region-end))
+          (message "Spellchecked region"))
+      (progn
+        (flyspell-buffer)
+        (message "Spellchecked buffer")))))
+
+(use-package flyspell
+  :ensure t
+  :diminish flyspell-mode "spell"
+  :bind (("S-<f6>" . flyspell-mode)
+         ("C-c s e" . skw/flyspell-dict-american)
+         ("C-c s g" . skw/flyspell-dict-english)
+         ("C-c s f" . skw/flyspell-dict-french)
+         ("C-c s d" . skw/flyspell-dict-german)
+         ("C-c s s" . skw/flyspell-buffer-or-region)
+         ("M-$"     . ispell-word)
+         ("M-*"     . flyspell-auto-correct-word)
+         ("M-ù"     . flyspell-goto-next-error))
+  :init
+  (setq ispell-program-name (executable-find "hunspell")
+        ispell-dictionary "en_US")
+  :config
+  (flyspell-mode 1))
+
+(defun restart-flyspell-mode ()
+  (when flyspell-mode
+    (flyspell-mode-off)
+    (flyspell-mode-on)))
+(add-hook 'ispell-change-dictionary-hook 'restart-flyspell-mode)
+#+end_src
+
+***** =ediff=
+
+#+begin_src emacs-lisp :tangle yes
+;; Fix new window opening / splitting
+(setq ediff-window-setup-function 'ediff-setup-windows-plain
+      ediff-split-window-function 'split-window-horizontally)
+(add-hook 'ediff-after-quit-hook-internal 'winner-mode)
+
+;; Show whitespaces properly
+(add-hook 'diff-mode-hook
+          (lambda ()
+            (setq-local whitespace-style
+                        '(face
+                          tabs
+                          tab-mark
+                          spaces
+                          space-mark
+                          trailing
+                          indentation::space
+                          indentation::tab
+                          newline
+                          newline-mark))))
+#+end_src
+
+***** =expand-region=
+
+Very useful utility to quickly select growing blocks of text.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package expand-region
+  :ensure t
+  :bind ("M-," . er/expand-region))
+#+end_src
+
+***** =undo-tree=
+
+Visualize undo history with =C-x u= with timestamps and diffs. Press =q=
+to quit.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package undo-tree
+  :ensure t
+  :diminish undo-tree-mode
+  :init
+  (setq undo-tree-visualizer-timestamps t
+        undo-tree-visualizer-diff t
+        undo-tree-auto-save-history nil)
+  :config
+  (global-undo-tree-mode))
+#+end_src
+
+***** =xclip=
+
+The classic copy/paste tricks from the OS clipboard (requires *xclip* from
+Xorg).
+
+#+begin_src emacs-lisp :tangle yes
+(use-package xclip
+  :ensure t
+  :init
+  (setq select-active-regions nil
+        select-enable-primary t
+        select-enable-clipboard t
+        mouse-drag-copy-region t)
+  :config
+  (xclip-mode 1))
+#+end_src
+
+*** Misc utilities
+:PROPERTIES:
+:CUSTOM_ID: General-misc
+:END:
+***** add to auto-mode-alist
+
+#+begin_src emacs-lisp :tangle yes
+(defun skw/add-auto-mode (mode &rest patterns)
+  "Use `mode` with given filename `patterns`"
+  (dolist (pattern patterns)
+    (add-to-list 'auto-mode-alist (cons pattern mode))))
+#+end_src
+
+***** list installed packages
+
+#+begin_src emacs-lisp :tangle yes
+(defun skw/list-installed-packages ()
+  "Return a list of all installed packages with their versions"
+  (interactive)
+  (mapcar
+   (lambda (pkg)
+     `(,pkg ,(package-desc-version
+              (cadr (assq pkg package-alist)))))
+   package-activated-list))
+#+end_src
+
+***** =howdoi=
+
+Looking-up Stack Overflow answers in an Emacs buffer.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package howdoi
+  :ensure t
+  :defer t)
+#+end_src
+
+***** =which-key=
+
+Great helper to find and remember keybindings.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package which-key
+  :ensure t
+  :diminish which-key-mode
+  :init
+  (setq which-key-sort-order 'which-key-key-order-alpha)
+  :config
+  (which-key-mode))
+#+end_src
+
+***** =discover-my-major=
+
+Get help for major modes.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package discover-my-major
+  :ensure t
+  :bind (("C-h C-m" . discover-my-major)
+         ("C-h M-m" . discover-my-mode)))
+#+end_src
+
+***** =sensitive-minor-mode=
+
+Used to prevent backups of sensitive files, like .gpg (from
+=.emacs.d/my_elisp/=) by *Emacs only*, you still have to check git
+and such of course.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package sensitive-minor-mode
+  :diminish sensitive-minor-mode "Sens"
+  :init
+  (setq auto-mode-alist
+        (append '(("\\.gpg$" . sensitive-minor-mode)
+                  ("\\.secret$" . sensitive-minor-mode)
+                  ("\\.secrets$" . sensitive-minor-mode))
+                auto-mode-alist)))
+#+end_src
+
+***** tmux compliance
+
+See [[https://wiki.archlinux.org/index.php/Emacs#Shift_.2B_Arrow_keys_not_working_in_emacs_within_tmux][here]].
+
+#+begin_src emacs-lisp :tangle yes
+(defadvice terminal-init-screen
+    ;; The advice is named `terminal-init-screen', and is run before `tmux' runs.
+    (before tmux activate)
+  "Apply xterm keymap, allowing use of keys passed through tmux."
+  (if (getenv "TMUX")
+      (let ((map (copy-keymap xterm-function-map)))
+        (set-keymap-parent map (keymap-parent input-decode-map))
+        (set-keymap-parent input-decode-map map))))
+#+end_src
+
+* Programming
+:PROPERTIES:
+:CUSTOM_ID: Programming
+:END:
+*** General stuff
+:PROPERTIES:
+:CUSTOM_ID: Programming-general
+:END:
+***** compilation buffer
+
+#+begin_src emacs-lisp :tangle yes
+(setq compilation-scroll-output  t
+      compilation-ask-about-save nil
+      compilation-scroll-output  'next-error
+      compilation-skip-threshold 2)
+
+(require 'ansi-color)
+(defun skw/colorize-buffer ()
+  "Add colors to the compilation buffer output."
+  (toggle-read-only)
+  (ansi-color-apply-on-region (point-min) (point-max))
+  (toggle-read-only))
+
+(add-hook 'compilation-filter-hook 'skw/colorize-buffer)
+#+end_src
+
+***** (un)comment region or line
+
+#+begin_src emacs-lisp :tangle yes
+(defun skw/comment-or-uncomment-region-or-line ()
+  " Comment or uncomment the region or the current line if no region is active."
+  (interactive)
+  (let (beg end)
+    (if (region-active-p)
+        (setq beg (region-beginning) end (region-end))
+      (setq beg (line-beginning-position) end (line-end-position)))
+    (comment-or-uncomment-region beg end)))
+
+(global-set-key (kbd "M-;") 'skw/comment-or-uncomment-region-or-line)
+#+end_src
+
+***** =flycheck=
+
+Toggle =flycheck-mode= with =<f6>= and =C-<f6>=.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package flycheck
+  :ensure t
+  :diminish flycheck-mode "check"
+  :bind (("<f6>"   . flycheck-mode)
+         ("C-<f6>" . global-flycheck-mode))
+  :hook ((c-mode
+          c++-mode
+          emacs-lisp-mode
+          lisp-interaction-mode
+          python-mode)
+         . flycheck-mode)
+  :config
+  (setq-default flycheck-disabled-checkers '(emacs-lisp-checkdoc))
+  (flycheck-mode 1))
+#+end_src
+
+***** =rainbows=
+
+I need colors in my life!
+
+#+begin_src emacs-lisp :tangle yes
+(use-package rainbow-delimiters
+  :ensure t
+  :hook ((prog-mode) . rainbow-delimiters-mode))
+
+(use-package rainbow-identifiers
+  :ensure t
+  :hook ((prog-mode) . rainbow-identifiers-mode))
+
+;; Display the color identifier's color as background
+(use-package rainbow-mode
+  :ensure t
+  :diminish rainbow-mode
+  :hook (css-mode
+         emacs-lisp-mode
+         html-mode
+         js-mode
+         org-mode))
+#+end_src
+
+***** =yasnippet=
+
+Note that personal snippets (=skw/d-snippets=) must be added before the
+defaults (=yas-installed-snippets-dir=) to effectively override them.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package yasnippet
+  :ensure t
+  :diminish yas-minor-mode "ys"
+  :bind (("<tab>" . #'yas-maybe-expand)
+         ("C-c y v" . #'yas-visit-snippet-file)
+         ("C-c y n" . #'yas-new-snippet)
+         ("C-c y y" . #'yas-insert-snippet))
+  :init
+  (setq yas-snippet-dirs '(skw/d-snippets ))
+  :config
+  (yas-global-mode 1))
+#+end_src
+
+*** Language specific
+:PROPERTIES:
+:CUSTOM_ID: Programming-specific
+:END:
+***** c/c++
+
+Some basic K&R style settings.
+
+#+begin_src emacs-lisp :tangle yes
+(require 'cc-mode)
+(setq c-default-style "k&r"
+      c-basic-indent 4
+      c-basic-offset 4)
+#+end_src
+
+Use =ggtags= to index symbols from a codebase and navigate to them.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package ggtags
+  :ensure t
+  :diminish ggtags-mode ""
+  :config
+  (add-hook 'c-mode-hook 'ggtags-mode))
+#+end_src
+
+***** conf-mode
+
+#+begin_src emacs-lisp :tangle yes
+(skw/add-auto-mode 'conf-mode
+                   "\\.conf$"
+                   "\\.config$"
+                   "\\.configuration$"
+                   "\\.gitconfig$"
+                   "\\.gitignore$")
+#+end_src
+
+***** haskell
+
+The following cabal packages need to be installed and the  =~/cabal/bin=
+directory needs to be added to our =$PATH=.
+
+#+begin_src shell
+$ cabal update
+$ cabal install happy hasktags hindent hlint
+#+end_src
+
+#+begin_src emacs-lisp :tangle yes
+(use-package haskell-mode
+  :ensure t
+  :defer t
+  :bind (:map haskell-mode-map
+              ("C-c C-l" . haskell-process-load-or-reload)
+              ("C-c C-z" . haskell-interactive-switch)
+              ("C-c C-c" . haskell-process-cabal-switch)
+              :map haskell-cabal-mode-map
+              ("C-c C-z" . haskell-interactive-switch))
+
+  :init
+  ;; setup cabal PATH
+  (let ((my-cabal-path (expand-file-name "~/.cabal/bin")))
+    (setenv "PATH" (concat my-cabal-path path-separator (getenv "PATH")))
+    (add-to-list 'exec-path my-cabal-path))
+
+  ;; haskell preferences
+  (setq haskell-ask-also-kill-buffers nil
+        haskell-tags-on-save t
+        haskell-stylish-on-save t
+        haskell-process-type 'cabal-repl
+        haskell-process-auto-import-loaded-modules t
+        haskell-process-log t)
+
+  :config
+  (add-hook 'haskell-mode-hook 'turn-on-haskell-doc-mode)
+  (add-hook 'haskell-mode-hook (lambda () (interactive-haskell-mode t))))
+#+end_src
+
+***** lisp
+
+Display information about a variable or function at point with =eldoc=.
+
+#+begin_src emacs-lisp :tangle yes
+(add-hook 'emacs-lisp-mode-hook 'turn-on-eldoc-mode)
+(add-hook 'lisp-interaction-mode-hook 'turn-on-eldoc-mode)
+#+end_src
+
+Summon an =ielm= repl in a separate window with =C-c l i=.
+
+#+begin_src emacs-lisp :tangle yes
+(global-set-key (kbd "C-c l i") 'skw/ielm)
+
+(defun skw/ielm ()
+  (interactive)
+  (split-window-below -12)
+  (other-window 1)
+  (ielm)
+  (set-window-dedicated-p (selected-window) t))
+#+end_src
+
+Eval the s-expr at point and print the result with =C-x j=.
+
+#+begin_src emacs-lisp :tangle yes
+(define-key lisp-interaction-mode-map (kbd "C-x j") 'eval-print-last-sexp)
+#+end_src
+
+***** markdown
+
+#+begin_src emacs-lisp :tangle yes
+(use-package markdown-mode
+  :ensure t
+  :config
+  (skw/add-auto-mode 'markdown-mode
+                     "\\.md$"
+                     "\\.mdown$")
+  (add-hook 'markdown-mode-hook #'auto-fill-mode)
+
+  ;; highlight code blocks without changing fonts
+  (setq markdown-fontify-code-blocks-natively t)
+  (set-face-attribute 'markdown-code-face nil
+                      :inherit nil))
+#+end_src
+
+***** python
+
+#+begin_src emacs-lisp :tangle yes
+(setq python-indent-offset 4)
+(skw/add-auto-mode 'python-mode
+                   "\\.sage$")
+
+(use-package py-autopep8
+  :ensure t)
+
+#+end_src
+
+***** web
+******* =emmet=
+
+#+begin_src emacs-lisp :tangle yes
+(use-package emmet-mode
+  :ensure t
+  :diminish emmet-mode "em"
+  :hook (css-mode sgml-mode web-mode))
+#+end_src
+
+******* =htmlize=
+
+Colorize html tags.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package htmlize :ensure t)
+#+end_src
+
+******* =js-mode=
+
+#+begin_src emacs-lisp :tangle yes
+(defun skw/js-options ()
+  "My conf for js-mode-hook."
+  (setq js-indent-level 2))
+
+(add-hook 'js-mode-hook 'skw/js-options)
+#+end_src
+
+******* =web-mode=
+
+#+begin_src emacs-lisp :tangle yes
+(use-package web-mode
+  :ensure t
+  :defer t
+  :init
+  (add-to-list 'auto-mode-alist '("\\.html?\\'" . web-mode))
+  (setq web-mode-enable-auto-closing t
+        web-mode-enable-auto-quoting t))
+#+end_src
+
+***** yaml
+
+#+begin_src emacs-lisp :tangle yes
+(use-package yaml-mode
+  :ensure t
+  :defer t)
+#+end_src
+
+* Org-mode
+:PROPERTIES:
+:CUSTOM_ID: Org
+:END:
+*** Habits
+:PROPERTIES:
+:CUSTOM_ID: Org-habits
+:END:
+
+#+begin_src emacs-lisp :tangle yes
+(use-package org-habit
+  :after org
+  :config
+  (setq org-habit-show-all-today t
+        org-habit-graph-column 55
+        org-habit-preceding-days 7
+        org-habit-following-days 7))
+#+end_src
+
+*** Add file extensions
+:PROPERTIES:
+:CUSTOM_ID: Org-files
+:END:
+
+File extensions for which org-mode should be the default major mode.
+
+#+begin_src emacs-lisp :tangle yes
+(skw/add-auto-mode 'org-mode
+                   "\\.org$"
+                   "\\.org_archive$"
+                   "\\.note$"
+                   "\\.notes$"
+                   "\\.txt$")
+#+end_src
+
+*** Outline
+:PROPERTIES:
+:CUSTOM_ID: Org-outline
+:END:
+
+#+begin_src emacs-lisp :tangle yes
+;; Startup formatting options
+(setq org-startup-folded t
+      org-startup-indented t
+      org-indent-mode t
+      org-startup-truncated t)
+
+;; Stars, headings, entries, etc.
+(setq org-hide-leading-stars t
+      org-odd-levels-only t
+      org-blank-before-new-entry '((heading . nil) (plain-list-item . nil))
+      org-tags-column -79)
+
+;; Source blocks
+(require 'org-tempo)
+(setq org-src-fontify-natively t
+      org-src-preserve-indentation t
+      org-src-window-setup 'reorganize-frame) ;; or 'current-window
+
+;; Misc
+(setq org-catch-invisible-edits 'show-and-error
+      org-enable-priority-commands nil)
+#+end_src
+
+*** Keybindings
+:PROPERTIES:
+:CUSTOM_ID: Org-keybindings
+:END:
+
+
+#+begin_src emacs-lisp :tangle yes
+;; Org apps
+(define-key global-map (kbd "C-c a")   'org-agenda)
+(define-key global-map (kbd "C-c c")   'org-capture)
+
+;; Links
+(define-key global-map (kbd "C-c M-l") 'org-store-link)
+(define-key global-map (kbd "C-c C-l") 'org-insert-link-global)
+(define-key org-mode-map (kbd "C-c M-o") 'org-toggle-link-display)
+
+;; Navigate between source blocks
+(define-key org-mode-map (kbd "C-c C-f") 'org-next-block)
+(define-key org-mode-map (kbd "C-c C-b") 'org-previous-block)
+
+;; Have M-RET behave nicely
+(setq org-M-RET-may-split-line nil)
+
+;; Still allow S-<arrow> to switch between windows
+;; (add-hook 'org-shiftup-final-hook    'windmove-up)
+;; (add-hook 'org-shiftdown-final-hook  'windmove-down)
+;; (add-hook 'org-shiftleft-final-hook  'windmove-left)
+;; (add-hook 'org-shiftright-final-hook 'windmove-right)
+#+end_src
+
+*** GTD
+:PROPERTIES:
+:CUSTOM_ID: Org-gtd
+:END:
+***** todo keywords
+
+This is a pretty basic "Getting Things Done" setup that can be built upon and
+customized.
+
+Tasks can be marked as /TODO/, /WIP/ (work in progress), /STOP/, /CANCEL/
+or /DONE/. Additionally, the /MEET/ keyword represents a punctual event.
+Notes can optionally be entered in the logbook when a task changes status.
+
+#+begin_src emacs-lisp :tangle yes
+(setq org-todo-keywords
+      '((sequence "TODO(t@/!)"
+                  "WIP(w@/!)"
+                  "STOP(p@/!)"
+                  "|" "DONE(d@/@)" "CANCEL(c@/@)")
+
+        (sequence "MEET(m@/!)" "|" "DONE(d@/@)" "CANCEL(c@/@)")))
+
+(setq org-log-into-drawer "LOGBOOK")
+(setq org-log-done 'time) ;; when no modifier, always log the DONE timestamp
+
+(setq org-todo-keyword-faces
+      (quote
+       (("TODO"      :foreground "red"        :weight bold)
+        ("WIP"       :foreground "pale green" :weight bold)
+        ("STOP"     :foreground "orange"      :weight bold)
+        ("MEET"      :foreground "magenta"    :weight bold)
+        ("DONE"      :foreground "green"      :weight bold)
+        ("CANCEL"    :foreground "gray"       :weight bold))))
+
+(setq org-use-fast-todo-selection t)
+(setq org-treat-insert-todo-heading-as-state-change t)
+
+(setq org-priority-enable-commands t
+      org-highest-priority ?A
+      org-lowest-priority ?E
+      org-default-priority ?E)
+
+(setq org-priority-faces '((?A . "red")
+                           (?B . "magenta")
+                           (?C . "color-46")
+                           (?D . "brightwhite")
+                           (?E . "brightblue")))
+
+(use-package org-fancy-priorities
+  :ensure t
+  :diminish
+  :hook
+  (org-mode . org-fancy-priorities-mode)
+  :config
+  (setq org-fancy-priorities-list '("A" "B" "C" "D" "E")))
+#+end_src
+
+This hook switches a =TODO= [/] heading to DONE when all its subheadings
+are marked as =DONE=.
+
+#+begin_src emacs-lisp :tangle yes
+(defun skw/org-summary-todo (n-done n-not-done)
+  "Switch entry to DONE when all subentries are DONE"
+  (let (org-log-done org-log-states)
+    (org-todo (if (= n-not-done 0) "DONE" "TODO"))))
+
+(add-hook 'org-after-todo-statistics-hook 'skw/org-summary-todo)
+#+end_src
+
+***** tags
+
+I use these following tags across my setup to track the next actions that
+should be taken:
+
+- /@URGENT/: Items that should be handled immediately.
+- /@REFILE/: Items that should be moved or processed.
+- /@WIP/: Current open items that are currently in progress.
+
+  #+begin_src emacs-lisp :tangle yes
+(setq org-tag-alist
+      '(("@URGENT" . ?u)
+        ("@REFILE" . ?r)
+        ("@WIP" . ?w)))
+
+(setq org-fast-tag-selection-single-key 'expert)
+(setq skw/org-filetags '("@WORK" "@PERSO" "@NOTE" "@PROJECT" "habit"))
+
+(setq org-agenda-hide-tags-regexp
+      (mapconcat (lambda (x) x) skw/org-filetags "\\|"))
+
+
+  #+end_src
+
+*** Agenda
+:PROPERTIES:
+:CUSTOM_ID: Org-agenda
+:END:
+***** common options
+
+Set some options, remove pre-existing agenda files and commands.
+
+#+begin_src emacs-lisp :tangle yes
+(setq org-agenda-compact-blocks nil
+      org-agenda-dim-blocked-tasks nil
+      org-agenda-time-leading-zero t)
+
+(setq org-agenda-files '())
+(setq org-agenda-custom-commands '())
+#+end_src
+
+#+begin_src emacs-lisp :tangle yes
+;; (setq skw/agenda-hidden-tags skw/org-useful-tags)
+;; (setq org-agenda-hide-tags-regexp
+;;       (mapconcat car skw/agenda-hidden-tags "\\|"))
+#+end_src
+
+***** skip tags in agenda
+
+#+begin_src emacs-lisp :tangle yes
+(defun skw/agenda-skip-tags (&rest args)
+  (let (beg end)
+    (org-back-to-heading t)
+    (setq beg (point)
+          end (progn (outline-next-heading) (1- (point))))
+    (goto-char beg)
+    (setq alltags (prin1-to-string (org-get-tags)))
+    (goto-char beg)
+    (if (-some (lambda (x) (string-match x alltags)) args)
+        end)))
+#+end_src
+
+*** Capture
+:PROPERTIES:
+:CUSTOM_ID: Org-capture
+:END:
+
+First get rid of any pre-existing capture template.
+
+#+begin_src emacs-lisp :tangle yes
+(setq org-capture-templates '())
+#+end_src
+
+Align tags on the captured item.
+
+#+begin_src emacs-lisp :tangle yes
+(add-hook 'org-capture-before-finalize-hook 'org-align-all-tags)
+#+end_src
+
+*** Refile
+:PROPERTIES:
+:CUSTOM_ID: Org-refile
+:END:
+
+#+begin_src emacs-lisp :tangle yes
+(setq org-refile-use-outline-path t ;; Use outline path with ido
+      org-outline-path-complete-in-steps nil
+      org-refile-allow-creating-parent-nodes 'confirm
+      org-refile-use-cache nil)
+#+end_src
+
+*** Exporting
+:PROPERTIES:
+:CUSTOM_ID: Org-exporting
+:END:
+***** settings
+
+Include the main exporters and set the right encoding.
+
+#+begin_src emacs-lisp :tangle yes
+(require 'ox-html)
+(require 'ox-org)
+(require 'ox-md)
+
+(setq org-export-coding-system 'utf-8)
+#+end_src
+
+***** extras
+
+#+begin_src emacs-lisp :tangle yes
+(use-package org-contrib
+  :ensure t)
+;; (require 'ox-extra)
+;; (ox-extras-activate '(latex-header-blocks ignore-headlines))
+#+end_src
+
+***** =reveal.js=
+
+Export to HTML presentation.
+
+#+begin_src emacs-lisp :tangle yes
+(use-package ox-reveal
+  :ensure t
+  :init
+  (setq org-reveal-root ""
+        org-reveal-mathjax t))
+#+end_src
+
+***** =twbs=
+
+Export to Twitter Bootstrap (html).
+
+#+begin_src emacs-lisp :tangle yes
+(use-package ox-twbs
+  :ensure t)
+#+end_src
+
+*** Babel
+:PROPERTIES:
+:CUSTOM_ID: Org-babel
+:END:
+
+#+begin_src emacs-lisp :tangle yes
+(setq org-confirm-babel-evaluate nil)
+
+(org-babel-do-load-languages
+ 'org-babel-load-languages
+ '((awk . t)
+   (C . t)
+   ;; (csharp . t)
+   (dot . t)
+   (emacs-lisp . t)
+   (gnuplot . t)
+   (haskell . t)
+   (js . t)
+   (org . t)
+   ;; (python . t)
+   (shell . t)))
+#+end_src
+
+*** Logging
+:PROPERTIES:
+:CUSTOM_ID: Org-logging
+:END:
+
+#+begin_src emacs-lisp :tangle yes
+(setq org-log-into-drawer "LOGBOOK"
+      org-log-done 'time)
+#+end_src
+
+*** Archiving
+:PROPERTIES:
+:CUSTOM_ID: Org-archiving
+:END:
+
+#+begin_src emacs-lisp :tangle yes
+(setq org-archive-mark-done nil
+      org-archive-subtree-add-inherited-tags t
+      org-archive-save-context-info '(time file category todo priority itags olpath ltags))
+
+(require 'org-archive-subtree-hierarchical)
+(define-key org-mode-map (kbd "C-c C-x M-a") 'org-archive-subtree-hierarchical)
+#+end_src

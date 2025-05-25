@@ -1,0 +1,4 @@
+settings = {
+  core = { real_name = "skywhi"; user_name = "skywhi"; nick = "skywhi"; };
+  "fe-text" = { actlist_sort = "refnum"; };
+};

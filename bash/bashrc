@@ -1,0 +1,230 @@
+#!/bin/sh
+
+# Environment variables and global options
+set -o emacs
+shopt -s checkwinsize
+
+TERM=xterm-256color
+
+LANG=en_US.UTF-8
+LC_ALL=en_US.UTF-8
+
+HISTFILE="$HOME/.sh_history"
+HISTSIZE=1000
+HISTFILESIZE=2000
+HISTCONTROL=ignoredups:ignorespace
+
+# Add $1 to $PATH if not already present
+pathadd() {
+    if [ -d "$1" ] && [[ ":$PATH:" != *":$1:"* ]]; then
+        PATH="${PATH:+"$PATH:"}$1"
+    fi
+}
+
+# Add custom, rust and go binaries to $PATH
+[ -d "${HOME}/.dotfiles/bin" ] && pathadd "${HOME}/.dotfiles/bin"
+[ -d "${HOME}/.cargo/bin" ] && pathadd "${HOME}/.cargo/bin"
+[ -d "${HOME}/go/bin" ] && pathadd "${HOME}/go/bin"
+
+# Set default editor
+if [ -x "$(command -v emacsclient)" ] ; then
+    EDITOR='emacsclient -c'
+    ALTERNATE_EDITOR='emacs'
+    VISUAL=$EDITOR
+
+elif [ -x "$(command -v emacs)" ] ; then
+    EDITOR='emacs'
+    ALTERNATE_EDITOR='emacs'
+    VISUAL='emacs'
+
+elif [ -x "$(command -v mg)" ] ; then
+    EDITOR="mg"
+    ALTERNATE_EDITOR="mg"
+    VISUAL="mg"
+
+elif [ -x "$(command -v nano)" ] ; then
+    EDITOR="nano"
+    ALTERNATE_EDITOR="nano"
+    VISUAL="nano"
+
+else
+    EDITOR="vi"
+    ALTERNATE_EDITOR="vi"
+    VISUAL="vi"
+fi
+
+alias e=${EDITOR}
+alias emc=${EDITOR}
+
+# Nicer prompt
+if [ $(id -u) == "0" ]; then
+    PS1='\[\e[0;31m\]\u\[\e[m\]@\h:\[\e[0;35m\]\w\[\e[m\]\[\e[0;31m\]\n$\[\e[m\] '
+else
+    PS1='\[\e[0;32m\]\u\[\e[m\]@\h:\[\e[0;35m\]\w\[\e[m\]\[\e[0;32m\]\n$\[\e[m\] '
+fi
+
+# OpenBSD specific
+if [ "$(uname)" = "OpenBSD" ]; then
+    [ -x "$(command -v doas)" ] && alias sudo='doas'
+    alias poweroff='sudo shudown -p now'
+    bind -m ^L='clear'^J
+fi
+
+# Specific tools
+[ -x "$(command -v curl)" ]     && alias weather='curl -s wttr.in/?nFQ '
+[ -x "$(command -v less)" ]     && alias more='less '
+[ -x "$(command -v newsboat)" ] && alias newsboat='newsboat -u ${HOME}/.my_private/newsboat/urls '
+[ -x "$(command -v ranger)" ]   && alias r='ranger '
+[ -x "$(command -v rifle)" ]    && alias o='rifle '
+[ -x "$(command -v sxiv)" ]     && alias sxiv='sxiv -a '
+[ -x "$(command -v tree)" ]     && alias tree='tree -F '
+[ -x "$(command -v urxvtc)" ]   && alias mm='urxvtc -cd "$PWD" & '
+
+# Tmux utility aliases
+if [ -x "$(command -v tmux)" ]; then
+    alias t='tmux'
+    alias ta='tmux attach -t'
+    alias tls='tmux ls'
+    alias tks='tmux kill-session -t'
+fi
+
+# Search through files with ripgrep
+if [ -x "$(command -v rg)" ]; then
+    alias rgi='rg -i'
+    alias rgia='rg -i -a '
+    alias rgl='rg -l'
+    alias rgla='rg -l -a'
+    alias rgil='rg -i -l'
+    alias rgila='rg -i -l -a'
+fi
+
+# Start irssi with personal config and private settings
+if [ -x "$(command -v irssi)" ]; then
+    alias irssi-libera='irssi --config=<((cat ${HOME}/.irssi/config 2>/dev/null && cat ${HOME}/.my_private/irssi/libera 2>/dev/null))'
+    alias irssi-hackerzvoice='irssi --config=<((cat ${HOME}/.irssi/config 2>/dev/null && cat ${HOME}/.my_private/irssi/hackerzvoice 2>/dev/null))'
+fi
+
+# Reset setxkbmap to fr+bepo
+alias bepomap='setxkbmap fr,fr oss,bepo grp:alt_caps_toggle,grp_led:scroll'
+
+# Aliases for standard utils
+alias dm='dmesg | tail'
+alias h='fc -l'
+alias hh='fc -l -1 -300|grep'
+alias hhh='fc -l -1 -${HISTSIZE}|grep'
+alias hi='ping -c 3 example.com'
+alias j='jobs'
+alias ls='ls -F --color=auto'
+alias l='ls -F --color=auto'
+alias la='ls -aF --color=auto'
+alias ll='ls -lisahF --group-directories-first'
+alias llm='ls -lisahF --group-directories-first | more'
+alias madiff='diff -ENwbur'
+alias mkdir='mkdir -p'
+alias p='ps -l'
+alias pa='ps -aux'
+alias pz='ps -aux|grep -v grep |grep'
+alias please='sudo $(fc -ln -1)'
+alias plz='please'
+alias q='exit'
+alias x='cd $HOME && startx'
+
+# Utility functions
+mkdircd() {
+    mkdir -p "$1"
+    cd "$1" || return
+}
+
+cdls() {
+    cd "$1" || return
+    ls -lisa "$1"
+}
+
+# Add a new cronjob formatted string to crontab
+add-cronjob() {
+    [ -n "$1" ] && crontab -l 2> /dev/null |
+            { cat; echo "$1"; } | sort | uniq | crontab -
+}
+
+# Extract various types of archives according to filename extension
+extract-archive() {
+    if [ -f "$1" ] ; then
+        case "$1" in
+            *.7z)        7z x "$1"      ;;
+            *.Z)         uncompress "$1";;
+            *.tar)       tar xfv "$1" ;;
+            *.tar.bz2)   tar xjfv "$1" ;;
+            *.tar.gz)    tar xzfv "$1" ;;
+            *.tbz2)      tar xjfv "$1" ;;
+            *.tgz)       tar xzfv "$1" ;;
+            *.bz2)       bunzip2 "$1" ;;
+            *.gz)        gunzip "$1" ;;
+            *.rar)       unrar x "$1" ;;
+            *.xz)        unxz "$1" ;;
+            *.zip)       unzip "$1" ;;
+            *)           echo "Could not match extension of $1" ;;
+        esac
+    fi
+}
+
+# Generate an alphanumerical password of length $1 with some special chars
+passwd-gen() {
+    tr -dc '[:alnum:]+,;/-=:&$(){}[]' < /dev/urandom \
+        | fold -w "${1:-16}" | head -n 1
+}
+
+# Decode b64 input from $1
+b64d() { echo -n "$1" | base64 -i -d ;}
+
+# Print timestamps
+ts-day() { date "+%Y-%m-%d" ; }
+ts-time() { date "+%Y-%m-%d_%H-%M-%S" ; }
+
+# Simply source existing file
+source-if-exists() {
+    [ -f "$1" ] && . "$1"
+}
+
+# create output image $1 from input $1 and writes text $3 in red across it
+print-on-image() {
+    input="$1"
+    output="$2"
+    text="$3"
+    color="255,0,0,0.25" # red
+    convert -density 150 -fill "rgba(${color})" \
+            -gravity Center -pointsize 80 \
+            -draw "rotate -45 text 0,0 \"${text}\"" \
+            "${input}" "${output}"
+}
+
+# Switch Xorg theme
+xorg-switch-theme() {
+    theme="${HOME}/.config/xorg/X${1}_theme"
+    [ -f "${theme}" ] && xrdb -override -I"$(dirname ${theme})" "${theme}"
+}
+
+# Convert html to pdf with chromium's headless browser
+html-to-pdf() {
+    chromium --headless --print-to-pdf="$2" --print-to-pdf-no-header "$2"
+}
+
+# Get rid of non-ascii chars in a file ($1)
+remove-non-ascii() {
+    local tmp_dir="$(mktemp -d)"
+    cat "$1" | tr -d '\200-\377' > "${tmp_dir}/$1"
+    cp "${tmp_dir}/$1" "$1"
+    rm -rf "${tmp_dir}"
+}
+
+# Get rid of BOM in file ($1)
+remove-bom() {
+    sed -i '1s/^\xEF\xBB\xBF//' "$1"
+}
+
+
+# Finally export all the thingz! (just in case)
+export PS1
+export PATH HOME TERM
+export LANG LC_ALL
+export ALTERNATE_EDITOR EDITOR VISUAL
+export HISTFILE HISTSIZE HISTCONTROL

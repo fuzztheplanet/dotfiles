@@ -1,0 +1,52 @@
+!! My urxvt configuration, pretty standard and most of the stuff comes from the
+!! Arch wiki: https://wiki.archlinux.org/index.php/Rxvt-unicode. Some packages
+!! are required: rxvt-unicode, urxvt-perls, urxvt-resize-font-git (aur)
+
+!! Urxvt
+URxvt*termName:            xterm-256color
+URxvt*buffered:            true
+URxvt*loginShell:          true
+URxvt*saveLines:           8000
+URxvt*scrollBar:           false
+URxvt*scrollstyle:         plain
+URxvt*secondaryScroll:     true
+URxvt.selectToClipboard:   true
+URXvt.disallowedWindowOps: 20,21,SetXprop
+
+!! Cosmetics
+URxvt*font:           xft:DejaVu Sans Mono:size=12:antialias=true
+URxvt*depth:          32
+URxvt*borderless:     1
+URxvt*transparent:    false
+URxvt*shading:        40
+URxvt*dynamicColors:  on
+URxvt*underlineColor: yellow
+URxvt*cursorBlink:    true
+URxvt*geometry:       400x400
+!! https://www.reddit.com/r/archlinux/comments/105t4ye/rxvtunicode_opens_in_the_middle_of_the_screen/
+
+!! Extensions
+URxvt.perl-ext-common: default,matcher,url-select,keyboard-select,resize-font,clipboard,selection-to-clipboard
+!! matcher
+URxvt.url-launcher:         firefox
+URxvt.matcher.button:       1
+URxvt.keysym.C-u:           perl:matcher:last
+URxvt.keysym.C-i:           perl:matcher:list
+!! url-select
+URxvt.url-select-launcher:  firefox
+URxvt.url-select.underline: true
+URxvt.keysym.M-u:           perl:url-select:select_next
+URxvt.keysym.M-Escape:      perl:keyboard-select:activate
+URxvt.keysym.M-s:           perl:keyboard-select:search
+!! clipboard
+URxvt.clipboard.autocopy:   false
+URxvt.keysym.M-c:           perl:clipboard:copy
+URxvt.keysym.M-v:           perl:clipboard:paste
+!! Xft Settings
+Xft.dpi:       96
+Xft.antialias: true
+Xft.rgba:      rgb
+Xft.hinting:   true
+Xft.hintstyle: hintslight
+
+#include "Xlight_theme"

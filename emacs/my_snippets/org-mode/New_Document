@@ -1,0 +1,21 @@
+# key: new_doc
+# name: New Document
+# --
+#+TITLE: $1
+#+DATE: <2020-03-15 Sun>
+#+AUTHOR: skywhi
+#+EMAIL: skywhi@skywhi.net
+#+DESCRIPTION:
+#+KEYWORDS:
+#+SUBTITLE:
+#+LANGUAGE: en
+#+OPTIONS: ':nil *:t -:t ::t <:t H:3 \n:nil ^:nil arch:headline
+#+OPTIONS: author:nil broken-links:nil c:nil creator:nil
+#+OPTIONS: d:(not "LOGBOOK") date:nil e:t email:nil f:t inline:t num:nil
+#+OPTIONS: p:nil pri:nil prop:nil stat:nil tags:nil tasks:t tex:t
+#+OPTIONS: timestamp:nil title:t toc:nil todo:nil |:nil
+#+OPTIONS: html-link-use-abs-url:nil html-postamble:nil
+#+OPTIONS: html-preamble:t html-scripts:t html-style:t
+#+OPTIONS: html5-fancy:nil tex:t
+
+$2

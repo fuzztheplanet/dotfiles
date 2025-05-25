@@ -1,0 +1,6 @@
+# -*- mode: snippet -*-
+# name: toc_local
+# key: toc_local
+# --
+*Table of Content*
+#+TOC: headlines 6 local

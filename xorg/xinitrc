@@ -1,0 +1,29 @@
+### ~/.xinitrc
+
+CONF_DIR="${HOME}/.config"
+I3_CONF_DIR="${CONF_DIR}/i3"
+X_CONF_DIR="${CONF_DIR}/xorg"
+
+# Set our fonts, Xresources, cursor and bépo settings
+xset fp+ /usr/share/fonts/TTF
+xset fp rehash
+[ -f "${X_CONF_DIR}/Xresources" ] && xrdb -I"${X_CONF_DIR}" "${X_CONF_DIR}/Xresources"
+[ -f "${X_CONF_DIR}/typematrix.xkb" ] && xkbcomp "${X_CONF_DIR}/typematrix.xkb" "$DISPLAY"
+xsetroot -cursor_name left_ptr
+setxkbmap fr,fr oss,bepo grp:alt_caps_toggle,grp_led:scroll
+
+# Start background programs first
+[ -n "$(command -v urxvtd)" ]       && urxvtd -q -o -f &
+[ -n "$(command -v xscreensaver)" ] && xscreensaver -no-splash &
+[ -n "$(command -v amixer)" ]       && amixer sset 'Master' 10% &
+[ -n "$(command -v unclutter)" ]    && unclutter -root -idle 1 &
+[ -n "$(command -v autocutsel)" ]   && autocutsel -selection PRIMARY -fork &
+
+# Window Managers
+if [ -n "$(command -v i3)" ]; then
+   export TERMINAL=urxvtc
+   exec i3 -c "${I3_CONF_DIR}/config/i3.conf"
+else
+    xterm &
+    xterm &
+fi
