@@ -9,17 +9,19 @@
 :CUSTOM_ID: About
 :END:
 
-This is my attempt at a self-documented Emacs configuration. It is aiming
-towards programming (C, Python, Haskell, Lisps, Shell and more) and document
-writing with org-mode. I have stolen a lot of this stuff from some very kind
-people, feel free to do the same here :)
+This is my attempt at a self-documented Emacs configuration. It is aimed towards
+programming (C, Python, Haskell, Lisps, Shell and more) and document writing
+with Org mode. I have stolen a lot of this stuff from some very kind people,
+feel free to do the same here :)
 
 The usual disclaimer applies: note that this is a constant work-in-progress
 setup, you should expect it to be quite hacky and not thoroughly tested.
 Always refer to the documentation when in doubt. Now please, have at it!
 
-Resources and similar setups that helped me build my own, you should check
-them out!
+Here are some setups that helped me build my own, you should check them out!
+
+- [[https://github.com/protesilaos/dotfiles/tree/master/emacs/.emacs.d][Protesilaos]]
+- [[https://github.com/hrs/dotfiles/blob/main/emacs/.config/emacs/configuration.org][Robin Schwartz]]
 
 * Prelude
 :PROPERTIES:
@@ -30,10 +32,10 @@ them out!
 :CUSTOM_ID: Prelude-server
 :END:
 
-Starting Emacs as a server allows to spawn instantly multiple clients
-sharing the same buffers without the need to reload the configuration file
-every time. I then use ~alias emc='emacsclient -c -a ""'~ in my shell to
-start a new Emacs client in the terminal.
+Starting Emacs as a server allows to spawn instantly multiple clients sharing
+the same buffers without the need to reload the configuration file every time. I
+then use ~alias emc='emacsclient -c'~ in my shell to start a new Emacs client in
+the terminal and connect to the server.
 
 #+begin_src emacs-lisp :tangle yes
 (require 'server)
@@ -59,22 +61,6 @@ also add custom elisp files to =load-path= while we are at it.
 (when (and (boundp 'skw/d-elisp)
            (file-readable-p skw/d-elisp))
   (add-to-list 'load-path skw/d-elisp))
-
-;; (defconst user-init-dir
-;;     (cond ((boundp 'user-emacs-directory)
-;;            user-emacs-directory)
-;;          ((boundp 'user-init-directory)
-;;                user-init-directory)
-;;              (t "~/.emacs.d/")))
-
-
-;; (defun load-user-file (file)
-;;     (interactive "f")
-;;       "Load a file in current user's configuration directory"
-;;    (load-file (expand-file-name file user-init-dir)))
-
-;; (load-user-file "my_elisp/org-archive-subtree-hierarchical.el")
-
 #+end_src
 
 *** Customize file
@@ -91,14 +77,14 @@ Use a =custom.el= file instead of cluttering our beloved =init.el=.
 (load custom-file)
 #+end_src
 
-*** Package init
+*** Package initialization
 :PROPERTIES:
 :CUSTOM_ID: Prelude-package
 :END:
 
-I get my packages from MELPA and ORG. The only package that we need to
-install manually is =use-package= which will then take care of installing
-the remaining packages (with the =:ensure t= flag) for us.
+I get my packages from MELPA and ORG. The only package that we need to install
+manually is [[https://github.com/jwiegley/use-package][use-package]] which will take care of installing the remaining
+packages (with the =:ensure t= flag) for us.
 
 #+begin_src emacs-lisp :tangle yes
 (require 'package)
@@ -119,8 +105,8 @@ the remaining packages (with the =:ensure t= flag) for us.
   (setq use-package-verbose t))
 #+end_src
 
-Let's always compile packages thanks to =auto-compile= to make sure that
-Emacs never loads outdated code.
+Let's always compile packages thanks to =auto-compile= to make sure that Emacs
+never loads outdated code.
 
 #+begin_src emacs-lisp :tangle yes
 (use-package auto-compile
@@ -130,7 +116,7 @@ Emacs never loads outdated code.
   (auto-compile-on-load-mode))
 #+end_src
 
-*** Elisp utiliy libraries
+*** Elisp utility libraries
 
 Gimme [[https://github.com/magnars/dash.el][dash]].
 
@@ -177,7 +163,7 @@ default.
 
 ***** encoding
 
-Let's be paranoid and force some utf-8 goodness everywhere we can.
+Let's be paranoid and force some UTF-8 goodness everywhere we can.
 
 #+begin_src emacs-lisp :tangle yes
 (set-language-environment "UTF-8")
@@ -275,7 +261,7 @@ Delete all windows except the current one with =C-z=.
 
 ***** scrolling
 
-Sopother scrolling options and keybindings to scroll unfocused windows.
+Smoother scrolling options and keybindings to scroll unfocused windows.
 
 #+begin_src emacs-lisp :tangle yes
 (setq redisplay-dont-pause t
@@ -308,10 +294,12 @@ Sopother scrolling options and keybindings to scroll unfocused windows.
 (xterm-mouse-mode t)
 (defun track-mouse (e))
 (setq mouse-sel-mode t)
-(global-set-key (kbd "<mouse-4>") 'scroll-down)
-(global-set-key (kbd "<mouse-5>") 'scroll-up)
+(global-set-key (kbd "<mouse-4>")    'scroll-down)
+(global-set-key (kbd "<wheel-down>") 'scroll-down)
+(global-set-key (kbd "<mouse-5>")    'scroll-up)
+(global-set-key (kbd "<wheel-up>")   'scroll-up)
 (setq mouse-wheel-scroll-amount '(1 ((shift) . 1) ((control) . nil)))
-(setq mouse-wheel-progressive-speed nil)
+(setq mouse-wheel-progressive-speed t)
 #+end_src
 
 ***** themes
@@ -652,7 +640,7 @@ Store backup files in a =~/.saves= directory and mini-buffer history into
 a =~/.emacs.d/savehist= file.
 
 #+begin_src emacs-lisp :tangle yes
-(setq backup-directory-alist `(("." . "~/.saves"))
+(setq backup-directory-alist `(("." . skw/d-saves))
       backup-by-copying t
       auto-save-default t
       auto-save-timeout 20
@@ -718,6 +706,7 @@ For a better buffer list/menu.
 (setq ibuffer-show-empty-filter-groups nil
       ibuffer-expert t)
 
+;; Kept for self reference. This layout is overwritten by ibuffer-projectile
 (setq ibuffer-saved-filter-groups
       (quote (("default"
                ("c"
@@ -810,13 +799,6 @@ Makes buffer names unique when needed to avoid possible confusions.
   projectile-enable-caching t
   projectile-dynamic-mode-line t
   projectile-auto-cleanup-known-projects t))
-
-;; (use-package counsel-projectile
-;;   :ensure t
-;;   :after projectile
-;;   :bind (("C-M-p" . counsel-projectile-find-file))
-;;   :config
-;;   (counsel-projectile-mode))
 #+end_src
 
 *** Editing
@@ -949,12 +931,10 @@ Kill text from the current position to the beginning of line.
 
 ***** escape / unescape quotes
 
-Escape or unescape quotes in the selection. If no region is marked,
-applies to the current line instead.
+Escape or unescape quotes in the selection. If no region is marked, applies to
+the current line instead. Taken from [[ https://ergoemacs.org/emacs/elisp_escape_quotes.html][ergoemacs]].
 
 #+begin_src emacs-lisp :tangle yes
-;; thanks to https://ergoemacs.org/emacs/elisp_escape_quotes.html
-
 (defun skw/escape-quotes (@begin @end)
   (interactive
    (if (use-region-p)
