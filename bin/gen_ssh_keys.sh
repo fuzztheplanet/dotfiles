@@ -1,14 +1,16 @@
 #!/usr/bin/env bash
 
-TMP_DIR="$(mktemp -d)"
+declare -a GREP_PATTERN=("-e" "cool " "-e" "c00l ")
+KEY_TYPE="ed25519"
 KEY_COMMENT="aloha"
 
+TMP_DIR="$(mktemp -d)"
 echo "Using directory ${TMP_DIR}"
 
 while true
 do
-    ssh-keygen -t ed25519 -f "${TMP_DIR}/newkey" -C "${KEY_COMMENT}" -N '' 2>/dev/null 1>&2;
-    if grep -q -e 'cool ' -e 'c00l ' "${TMP_DIR}/newkey.pub"; then
+    ssh-keygen -t "${KEY_TYPE}" -f "${TMP_DIR}/newkey" -C "${KEY_COMMENT}" -N '' 2>/dev/null 1>&2;
+    if grep -q "${GREP_PATTERN[@]}" "${TMP_DIR}/newkey.pub"; then
         echo "Found pattern. Stopping key generation."
         cat "${TMP_DIR}/newkey.pub"
         echo "[!] Don't forget to securely copy and remove the private key!"
