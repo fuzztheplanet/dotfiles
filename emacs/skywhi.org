@@ -231,6 +231,12 @@ I demand pretty text!
 (setq font-lock-maximum-decoration t)
 #+end_src
 
+Toogle *font-lock-mode* on / off.
+
+#+begin_src emacs-lisp :tangle yes
+(global-set-key (kbd "C-c M-p") 'font-lock-mode)
+#+end_src
+
 ***** windows
 
 Move between windows with =C-x <key>=.
@@ -295,9 +301,9 @@ Smoother scrolling options and keybindings to scroll unfocused windows.
 (defun track-mouse (e))
 (setq mouse-sel-mode t)
 (global-set-key (kbd "<mouse-4>")    'scroll-down)
-(global-set-key (kbd "<wheel-down>") 'scroll-down)
+(global-set-key (kbd "<wheel-up>")   'scroll-down)
 (global-set-key (kbd "<mouse-5>")    'scroll-up)
-(global-set-key (kbd "<wheel-up>")   'scroll-up)
+(global-set-key (kbd "<wheel-down>") 'scroll-up)
 (setq mouse-wheel-scroll-amount '(1 ((shift) . 1) ((control) . nil)))
 (setq mouse-wheel-progressive-speed t)
 #+end_src
@@ -744,14 +750,14 @@ For a better buffer list/menu.
   :ensure t
   :config
   (setq ibuffer-formats
-      '((mark modified read-only " "
-              (name 18 18 :left :elide)
-              " "
-              (size 9 -1 :right)
-              " "
-              (mode 16 16 :left :elide)
-              " "
-              project-relative-file)))
+        '((mark modified read-only " "
+                (name 18 18 :left :elide)
+                " "
+                (size 9 -1 :right)
+                " "
+                (mode 16 16 :left :elide)
+                " "
+                project-relative-file)))
   (add-hook 'ibuffer-hook
             (lambda ()
               (ibuffer-projectile-set-filter-groups)
@@ -786,8 +792,8 @@ Makes buffer names unique when needed to avoid possible confusions.
         '("*scratch*"
           "*lsp-log*")
 
-  ;; ignoring buffers by their major mode
-  projectile-globally-ignored-modes
+        ;; ignoring buffers by their major mode
+        projectile-globally-ignored-modes
         '("erc-mode"
           "help-mode"
           "completion-list-mode"
@@ -795,10 +801,10 @@ Makes buffer names unique when needed to avoid possible confusions.
           "gnus-.*-mode"
           "occur-mode")
 
-  projectile-sort-order 'recently-active
-  projectile-enable-caching t
-  projectile-dynamic-mode-line t
-  projectile-auto-cleanup-known-projects t))
+        projectile-sort-order 'recently-active
+        projectile-enable-caching t
+        projectile-dynamic-mode-line t
+        projectile-auto-cleanup-known-projects t))
 #+end_src
 
 *** Editing
@@ -1595,21 +1601,6 @@ Colorize html tags.
 :PROPERTIES:
 :CUSTOM_ID: Org
 :END:
-*** Habits
-:PROPERTIES:
-:CUSTOM_ID: Org-habits
-:END:
-
-#+begin_src emacs-lisp :tangle yes
-(use-package org-habit
-  :after org
-  :config
-  (setq org-habit-show-all-today t
-        org-habit-graph-column 55
-        org-habit-preceding-days 7
-        org-habit-following-days 7))
-#+end_src
-
 *** Add file extensions
 :PROPERTIES:
 :CUSTOM_ID: Org-files
@@ -1679,110 +1670,16 @@ File extensions for which org-mode should be the default major mode.
 (setq org-M-RET-may-split-line nil)
 
 ;; Still allow S-<arrow> to switch between windows
-;; (add-hook 'org-shiftup-final-hook    'windmove-up)
-;; (add-hook 'org-shiftdown-final-hook  'windmove-down)
-;; (add-hook 'org-shiftleft-final-hook  'windmove-left)
-;; (add-hook 'org-shiftright-final-hook 'windmove-right)
+(add-hook 'org-shiftup-final-hook    'windmove-up)
+(add-hook 'org-shiftdown-final-hook  'windmove-down)
+(add-hook 'org-shiftleft-final-hook  'windmove-left)
+(add-hook 'org-shiftright-final-hook 'windmove-right)
 #+end_src
-
-*** GTD
-:PROPERTIES:
-:CUSTOM_ID: Org-gtd
-:END:
-***** todo keywords
-
-This is a pretty basic "Getting Things Done" setup that can be built upon and
-customized.
-
-Tasks can be marked as /TODO/, /WIP/ (work in progress), /STOP/, /CANCEL/
-or /DONE/. Additionally, the /MEET/ keyword represents a punctual event.
-Notes can optionally be entered in the logbook when a task changes status.
-
-#+begin_src emacs-lisp :tangle yes
-(setq org-todo-keywords
-      '((sequence "TODO(t@/!)"
-                  "WIP(w@/!)"
-                  "STOP(p@/!)"
-                  "|" "DONE(d@/@)" "CANCEL(c@/@)")
-
-        (sequence "MEET(m@/!)" "|" "DONE(d@/@)" "CANCEL(c@/@)")))
-
-(setq org-log-into-drawer "LOGBOOK")
-(setq org-log-done 'time) ;; when no modifier, always log the DONE timestamp
-
-(setq org-todo-keyword-faces
-      (quote
-       (("TODO"      :foreground "red"        :weight bold)
-        ("WIP"       :foreground "pale green" :weight bold)
-        ("STOP"     :foreground "orange"      :weight bold)
-        ("MEET"      :foreground "magenta"    :weight bold)
-        ("DONE"      :foreground "green"      :weight bold)
-        ("CANCEL"    :foreground "gray"       :weight bold))))
-
-(setq org-use-fast-todo-selection t)
-(setq org-treat-insert-todo-heading-as-state-change t)
-
-(setq org-priority-enable-commands t
-      org-highest-priority ?A
-      org-lowest-priority ?E
-      org-default-priority ?E)
-
-(setq org-priority-faces '((?A . "red")
-                           (?B . "magenta")
-                           (?C . "color-46")
-                           (?D . "brightwhite")
-                           (?E . "brightblue")))
-
-(use-package org-fancy-priorities
-  :ensure t
-  :diminish
-  :hook
-  (org-mode . org-fancy-priorities-mode)
-  :config
-  (setq org-fancy-priorities-list '("A" "B" "C" "D" "E")))
-#+end_src
-
-This hook switches a =TODO= [/] heading to DONE when all its subheadings
-are marked as =DONE=.
-
-#+begin_src emacs-lisp :tangle yes
-(defun skw/org-summary-todo (n-done n-not-done)
-  "Switch entry to DONE when all subentries are DONE"
-  (let (org-log-done org-log-states)
-    (org-todo (if (= n-not-done 0) "DONE" "TODO"))))
-
-(add-hook 'org-after-todo-statistics-hook 'skw/org-summary-todo)
-#+end_src
-
-***** tags
-
-I use these following tags across my setup to track the next actions that
-should be taken:
-
-- /@URGENT/: Items that should be handled immediately.
-- /@REFILE/: Items that should be moved or processed.
-- /@WIP/: Current open items that are currently in progress.
-
-  #+begin_src emacs-lisp :tangle yes
-(setq org-tag-alist
-      '(("@URGENT" . ?u)
-        ("@REFILE" . ?r)
-        ("@WIP" . ?w)))
-
-(setq org-fast-tag-selection-single-key 'expert)
-(setq skw/org-filetags '("@WORK" "@PERSO" "@NOTE" "@PROJECT" "habit"))
-
-(setq org-agenda-hide-tags-regexp
-      (mapconcat (lambda (x) x) skw/org-filetags "\\|"))
-
-
-  #+end_src
 
 *** Agenda
 :PROPERTIES:
 :CUSTOM_ID: Org-agenda
 :END:
-***** common options
 
 Set some options, remove pre-existing agenda files and commands.
 
@@ -1793,27 +1690,6 @@ Set some options, remove pre-existing agenda files and commands.
 
 (setq org-agenda-files '())
 (setq org-agenda-custom-commands '())
-#+end_src
-
-#+begin_src emacs-lisp :tangle yes
-;; (setq skw/agenda-hidden-tags skw/org-useful-tags)
-;; (setq org-agenda-hide-tags-regexp
-;;       (mapconcat car skw/agenda-hidden-tags "\\|"))
-#+end_src
-
-***** skip tags in agenda
-
-#+begin_src emacs-lisp :tangle yes
-(defun skw/agenda-skip-tags (&rest args)
-  (let (beg end)
-    (org-back-to-heading t)
-    (setq beg (point)
-          end (progn (outline-next-heading) (1- (point))))
-    (goto-char beg)
-    (setq alltags (prin1-to-string (org-get-tags)))
-    (goto-char beg)
-    (if (-some (lambda (x) (string-match x alltags)) args)
-        end)))
 #+end_src
 
 *** Capture
@@ -1903,25 +1779,14 @@ Export to Twitter Bootstrap (html).
  'org-babel-load-languages
  '((awk . t)
    (C . t)
-   ;; (csharp . t)
    (dot . t)
    (emacs-lisp . t)
    (gnuplot . t)
    (haskell . t)
    (js . t)
    (org . t)
-   ;; (python . t)
+   (python . t)
    (shell . t)))
-#+end_src
-
-*** Logging
-:PROPERTIES:
-:CUSTOM_ID: Org-logging
-:END:
-
-#+begin_src emacs-lisp :tangle yes
-(setq org-log-into-drawer "LOGBOOK"
-      org-log-done 'time)
 #+end_src
 
 *** Archiving
