@@ -1,4 +1,5 @@
 ;; Load custom configs
+(require 'org)
 (if (file-readable-p (concat user-emacs-directory "skywhi.org"))
     (org-babel-load-file (concat user-emacs-directory "skywhi.org")))
 
@@ -7,5 +8,3 @@
 
 (if (file-readable-p "~/org/work/conf.org")
     (org-babel-load-file "~/org/work/conf.org"))
-
-(put 'downcase-region 'disabled nil)

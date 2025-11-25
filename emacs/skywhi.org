@@ -4,22 +4,25 @@
 #+OPTIONS: tags:nil
 #+OPTIONS: html-postamble:nil
 
+
 * About
 :PROPERTIES:
 :CUSTOM_ID: About
 :END:
 
 This is my attempt at a self-documented Emacs configuration. It is aimed towards
-programming (C, Python, Haskell, Lisps, Shell and more) and document writing
-with Org mode. I have stolen a lot of this stuff from some very kind people,
-feel free to do the same here :)
+programming (C, Python, Bash and more) and document writing with Org mode. I
+have stolen a lot of this stuff from some very kind people, feel free to do the
+same here :)
 
 The usual disclaimer applies: note that this is a constant work-in-progress
-setup, you should expect it to be quite hacky and not thoroughly tested.
-Always refer to the documentation when in doubt. Now please, have at it!
+setup, you should expect it to be quite hacky and not thoroughly tested. Always
+refer to the documentation when in doubt. Now please, have at it!
 
-Here are some setups that helped me build my own, you should check them out!
+Here are some setups that helped me build this one, you should check them out!
 
+- [[https://github.com/howardabrams/dot-files/tree/master][Howard Abrams]]
+- [[https://github.com/larstvei/dot-emacs][Lars Tveito]]
 - [[https://github.com/protesilaos/dotfiles/tree/master/emacs/.emacs.d][Protesilaos]]
 - [[https://github.com/hrs/dotfiles/blob/main/emacs/.config/emacs/configuration.org][Robin Schwartz]]
 
@@ -27,64 +30,70 @@ Here are some setups that helped me build my own, you should check them out!
 :PROPERTIES:
 :CUSTOM_ID: Prelude
 :END:
-*** Emacs server
+*** Emacs Server
 :PROPERTIES:
 :CUSTOM_ID: Prelude-server
 :END:
 
 Starting Emacs as a server allows to spawn instantly multiple clients sharing
 the same buffers without the need to reload the configuration file every time. I
-then use ~alias emc='emacsclient -c'~ in my shell to start a new Emacs client in
-the terminal and connect to the server.
+then use ~alias emc='emacsclient -c '~ in my =.bashrc= file to start a new Emacs
+client in the terminal and connect to the server.
 
 #+begin_src emacs-lisp :tangle yes
 (require 'server)
 (unless (server-running-p) (server-start))
 #+end_src
 
-*** User files
+*** User Files
 :PROPERTIES:
 :CUSTOM_ID: Prelude-files
 :END:
 
-Define the files and directories that will be used across the configuration,
-also add custom elisp files to =load-path= while we are at it.
+Define the files and directories that will be used across the configuration.
 
 #+begin_src emacs-lisp :tangle yes
 (setq skw/d-base     user-emacs-directory
       skw/f-config   (concat skw/d-base "skywhi.org")
+      skw/f-custom   (concat skw/d-base "custom.el")
       skw/d-elisp    (concat skw/d-base "my_elisp/")
+      skw/d-savedir  (concat skw/d-base "saves")
+      skw/f-savehist (concat skw/d-base "savehist")
       skw/d-snippets (concat skw/d-base "my_snippets/")
-      skw/d-saves    (concat skw/d-base "saves/")
-      skw/f-savehist (concat skw/d-base "savehist"))
+      )
+#+end_src
 
+Also add custom Emacs Lisp files to =load-path= while we are at it.
+
+#+begin_src emacs-lisp :tangle yes
 (when (and (boundp 'skw/d-elisp)
            (file-readable-p skw/d-elisp))
   (add-to-list 'load-path skw/d-elisp))
 #+end_src
 
-*** Customize file
+*** Customize File
 :PROPERTIES:
 :CUSTOM_ID: Prelude-customize
 :END:
 
-Use a =custom.el= file instead of cluttering our beloved =init.el=.
+Use a separate =custom.el= file instead of cluttering our beloved =init.el= with
+ad-hoc customizations.
 
 #+begin_src emacs-lisp :tangle yes
-(setq custom-file (expand-file-name "custom.el" user-emacs-directory))
+(setq custom-file skw/f-custom)
 (unless (file-exists-p custom-file)
   (write-region "" nil custom-file))
 (load custom-file)
 #+end_src
 
-*** Package initialization
+*** Package Initialization
 :PROPERTIES:
 :CUSTOM_ID: Prelude-package
 :END:
 
-I get my packages from MELPA and ORG. The only package that we need to install
-manually is [[https://github.com/jwiegley/use-package][use-package]] which will take care of installing the remaining
-packages (with the =:ensure t= flag) for us.
+I get my packages from the [[https://melpa.org/packages/][MELPA]] and [[https://orgmode.org/elpa/][ORG]] repositories. The only package which
+needs to be installed "manually" is [[https://github.com/jwiegley/use-package][use-package]]. It will take care of installing
+the remaining packages (with the =:ensure t= flag) for us.
 
 #+begin_src emacs-lisp :tangle yes
 (require 'package)
@@ -98,15 +107,12 @@ packages (with the =:ensure t= flag) for us.
 
 (unless (package-installed-p 'use-package)
   (package-refresh-contents)
-  (package-install 'use-package))
-
-(eval-when-compile
-  (require 'use-package)
-  (setq use-package-verbose t))
+  (package-install 'use-package)
+  (setq use-package-always-defer t))
 #+end_src
 
 Let's always compile packages thanks to =auto-compile= to make sure that Emacs
-never loads outdated code.
+never loads outdated code. And keep warnings during intialisation to a minimum.
 
 #+begin_src emacs-lisp :tangle yes
 (use-package auto-compile
@@ -114,9 +120,12 @@ never loads outdated code.
   :config
   (setq load-prefer-newer t)
   (auto-compile-on-load-mode))
+
+(setq byte-compile-warnings '(cl-functions)
+      warning-minimum-level :emergency)
 #+end_src
 
-*** Elisp utility libraries
+*** Elisp Utility Libraries
 
 Gimme [[https://github.com/magnars/dash.el][dash]].
 
@@ -125,27 +134,31 @@ Gimme [[https://github.com/magnars/dash.el][dash]].
   :ensure t)
 #+end_src
 
-* General settings
+* General Settings
 :PROPERTIES:
 :CUSTOM_ID: General
 :END:
-*** Start-up and some sane defaults
+*** Start-up and Sane Defaults
 :PROPERTIES:
 :CUSTOM_ID: General-startup
 :END:
-***** start-up screen
+***** Scratch buffer
+
+Let's jump right in, shall we?
 
 #+begin_src emacs-lisp :tangle yes
 (setq inhibit-startup-screen t)
-(setq initial-scratch-message ";; Aloha !\n")
+(setq initial-major-mode 'org-mode)
+(setq initial-scratch-message "#+TITLE: Aloha !\n")
 #+end_src
 
-***** default modes and hooks
+***** Default modes and hooks
 
 These are the built-in modes and hooks that I like to have enabled by
 default.
 
 #+begin_src emacs-lisp :tangle yes
+;; Default built-in modes
 (setq default-major-mode 'text-mode)
 (auto-compression-mode t)        ;; Handle compressed files
 (file-name-shadow-mode t)        ;; Better minibuffer filenames
@@ -155,13 +168,14 @@ default.
 (global-font-lock-mode t)        ;; Syntax highlighting
 (global-prettify-symbols-mode t) ;; Prettify things if possible
 
+;; Hooks
 (add-hook 'find-file-hook 'goto-address-mode)      ;; Prettify urls and emails
 (add-hook 'find-file-hook 'goto-address-prog-mode) ;; Also in strings and comments
 (add-hook 'text-mode-hook 'turn-on-auto-fill)      ;; Automatically wrap text
 (add-hook 'before-save-hook 'whitespace-cleanup)   ;; Delete extra whitespaces
 #+end_src
 
-***** encoding
+***** Encoding
 
 Let's be paranoid and force some UTF-8 goodness everywhere we can.
 
@@ -174,7 +188,7 @@ Let's be paranoid and force some UTF-8 goodness everywhere we can.
 (setq-default buffer-file-coding-system 'utf-8)
 #+end_src
 
-***** miscellaneous options
+***** Miscellaneous options
 
 Change various small options for convenience.
 
@@ -187,11 +201,11 @@ Change various small options for convenience.
       visible-bell t)             ;; Blink instead of ring when bell is on
 #+end_src
 
-*** UI tweaks
+*** UI Tweaks
 :PROPERTIES:
 :CUSTOM_ID: General-ui
 :END:
-***** appearance
+***** Appearance
 
 Get rid of the toolbars and time display but keep the line/column numbers
 in the status line.
@@ -213,7 +227,7 @@ in the status line.
   (global-hl-line-mode))
 #+end_src
 
-***** frames
+***** Frames
 
 Set the frame title and always start fullscreen frames.
 
@@ -222,7 +236,7 @@ Set the frame title and always start fullscreen frames.
 (modify-all-frames-parameters '((fullscreen . maximized)))
 #+end_src
 
-***** fonts
+***** Fonts
 
 I demand pretty text!
 
@@ -237,7 +251,7 @@ Toogle *font-lock-mode* on / off.
 (global-set-key (kbd "C-c M-p") 'font-lock-mode)
 #+end_src
 
-***** windows
+***** Windows
 
 Move between windows with =C-x <key>=.
 
@@ -265,7 +279,7 @@ Delete all windows except the current one with =C-z=.
 (global-set-key (kbd "C-z") 'delete-other-windows)
 #+end_src
 
-***** scrolling
+***** Scrolling
 
 Smoother scrolling options and keybindings to scroll unfocused windows.
 
@@ -293,7 +307,7 @@ Smoother scrolling options and keybindings to scroll unfocused windows.
 (global-set-key (kbd "M-n") 'scroll-up)
 #+end_src
 
-***** mouse
+***** Mouse
 
 #+begin_src emacs-lisp :tangle yes
 (require 'mouse)
@@ -308,7 +322,7 @@ Smoother scrolling options and keybindings to scroll unfocused windows.
 (setq mouse-wheel-progressive-speed t)
 #+end_src
 
-***** themes
+***** Themes
 
 A safer =load-theme= function that disables previously loaded themes before
 executing a new one.
@@ -344,7 +358,7 @@ keybindings to switch between them.
     (load-theme 'ef-dark)))
 #+end_src
 
-***** =diminish=
+***** =Diminish=
 
 =diminish= lets us hide unwanted modes from the mode-line.
 
@@ -353,7 +367,7 @@ keybindings to switch between them.
   :ensure t)
 #+end_src
 
-***** =smart-mode-line=
+***** =Smart-mode-line=
 
 Better looking mode-line, other themes are included for testing.
 
@@ -370,7 +384,7 @@ Better looking mode-line, other themes are included for testing.
   (sml/setup))
 #+end_src
 
-***** =volatile-highlights=
+***** =Volatile-highlights=
 
 This [[https://www.emacswiki.org/emacs/VolatileHighlights][package]] highlights recent region-related changes like /undo/ or /yank/.
 
@@ -382,11 +396,7 @@ This [[https://www.emacswiki.org/emacs/VolatileHighlights][package]] highlights 
   (volatile-highlights-mode t))
 #+end_src
 
-*** Emacs behavior
-:PROPERTIES:
-:CUSTOM_ID: General-behavior
-:END:
-***** rebind =M-x=
+***** Rebind =M-x=
 
 I define them here but they will be overwritten by the =ivy= package
 later on.
@@ -486,8 +496,8 @@ https://protesilaos.com/codelog/2019-12-15-emacs-ivy-fzf-rg/
   :config
   (defun skw/ivy-prescient-filters (str)
     "Specify an exception for `prescient-filter-method'.
-This new rule can be used to tailor the results of individual
-Ivy-powered commands, using `ivy-prescient-re-builder'."
+  This new rule can be used to tailor the results of individual
+  Ivy-powered commands, using `ivy-prescient-re-builder'."
     (let ((prescient-filter-method '(literal regexp)))
       (ivy-prescient-re-builder str)))
 
@@ -530,8 +540,8 @@ Ivy-powered commands, using `ivy-prescient-re-builder'."
 
   (defun skw/counsel-fzf-rg-files (&optional input dir)
     "Run `fzf' in tandem with `ripgrep' to find files in the
-present directory.  Both of those programs are external to
-Emacs."
+  present directory.  Both of those programs are external to
+  Emacs."
     (interactive)
     (let ((process-environment
            (cons (concat "FZF_DEFAULT_COMMAND=rg -Sn --color never --files --no-follow --hidden")
@@ -584,7 +594,7 @@ Emacs."
   (setq ivy-flx-limit 10000))
 #+end_src
 
-***** exiting Emacs
+***** Exiting Emacs
 
 
 =C-x C-x= will shutdown emacs-server if the current frame is the last
@@ -605,7 +615,7 @@ instance. =C-x M-x= will leave the server running in the background instead.
 :PROPERTIES:
 :CUSTOM_ID: General-files
 :END:
-***** get current directory
+***** Get current directory
 
 #+begin_src emacs-lisp :tangle yes
 (defun skw/get-file-directory ()
@@ -615,7 +625,7 @@ instance. =C-x M-x= will leave the server running in the background instead.
     (file-name-directory load-file-name)))
 #+end_src
 
-***** open if file is readable
+***** Open if file is readable
 
 Simply open a file if it exists already, otherwise don't create a new one.
 
@@ -630,9 +640,9 @@ Simply open a file if it exists already, otherwise don't create a new one.
     (message (format "File %s does not exist" fname))))
 #+end_src
 
-***** quickly access files
+***** Quickly access files
 
-Here I add some files to quickly open them with =C-c f <f>=. Like this
+Here I add some files to quickly open them with =C-c f <key>=. Like this
 configuration file.
 
 #+begin_src emacs-lisp :tangle yes
@@ -640,13 +650,13 @@ configuration file.
                                   (skw/open-file-readable skw/f-config)))
 #+end_src
 
-***** backups
+***** Backups
 
-Store backup files in a =~/.saves= directory and mini-buffer history into
-a =~/.emacs.d/savehist= file.
+Store backup files in a =~/.emacs.d/saves= directory and mini-buffer history
+into a =~/.emacs.d/savehist= file.
 
 #+begin_src emacs-lisp :tangle yes
-(setq backup-directory-alist `(("." . skw/d-saves))
+(setq backup-directory-alist `(("." . skw/d-savedir))
       backup-by-copying t
       auto-save-default t
       auto-save-timeout 20
@@ -666,13 +676,13 @@ a =~/.emacs.d/savehist= file.
 :PROPERTIES:
 :CUSTOM_ID: General-buffers
 :END:
-***** manually revert buffer
+***** Manually revert buffer
 
 #+begin_src emacs-lisp :tangle yes
 (global-set-key (kbd "<f5>") 'revert-buffer)
 #+end_src
 
-***** minibuffer
+***** Minibuffer
 
 #+begin_src emacs-lisp :tangle yes
 (setq history-length 250
@@ -811,7 +821,7 @@ Makes buffer names unique when needed to avoid possible confusions.
 :PROPERTIES:
 :CUSTOM_ID: General-editing
 :END:
-***** autofill, indent, tabs, whitespaces & friends
+***** Autofill, indent, tabs, whitespaces & friends
 
 Some "textual" cosmetics.
 
@@ -877,7 +887,7 @@ Some "textual" cosmetics.
       (skw/cleanup-buffer))))
 #+end_src
 
-***** case change
+***** Case change
 
 #+begin_src emacs-lisp :tangle yes
 (global-set-key (kbd "M-l") 'downcase-word)
@@ -885,7 +895,7 @@ Some "textual" cosmetics.
 (global-set-key (kbd "M-i") 'upcase-word)
 #+end_src
 
-***** copy/paste
+***** Copy/paste
 
 #+begin_src emacs-lisp :tangle yes
 (setq kill-ring-max 100
@@ -935,7 +945,7 @@ Kill text from the current position to the beginning of line.
   (kill-region (point) (line-beginning-position)))
 #+end_src
 
-***** escape / unescape quotes
+***** Escape / unescape quotes
 
 Escape or unescape quotes in the selection. If no region is marked, applies to
 the current line instead. Taken from [[ https://ergoemacs.org/emacs/elisp_escape_quotes.html][ergoemacs]].
@@ -968,26 +978,26 @@ the current line instead. Taken from [[ https://ergoemacs.org/emacs/elisp_escape
   (message "Unescaped quotes"))
 #+end_src
 
-***** goto-line
+***** Goto-line
 
 #+begin_src emacs-lisp :tangle yes
 (global-set-key (kbd "C-x C-l") 'goto-line)
 #+end_src
 
-***** case manipulation
+***** Case manipulation
 
 #+begin_src emacs-lisp :tangle yes
 (global-set-key (kbd "C-x M-l") 'downcase-region)
 #+end_src
 
-***** macros
+***** Macros
 
 #+begin_src emacs-lisp :tangle yes
 (global-set-key (kbd "<f3>") 'kmacro-start-macro-or-insert-counter)
 (global-set-key (kbd "<f4>") 'kmacro-end-or-call-macro)
 #+end_src
 
-***** mark & region
+***** Mark & region
 
 #+begin_src emacs-lisp :tangle yes
 (global-set-key (kbd "C-x p")   'pop-to-mark-command)
@@ -1001,7 +1011,7 @@ the current line instead. Taken from [[ https://ergoemacs.org/emacs/elisp_escape
       set-mark-command-repeat-pop t)
 #+end_src
 
-***** parenthesis
+***** Parenthesis
 
 Quick and dirty style change to highlight and underline matching
 parentheses.
@@ -1114,7 +1124,7 @@ I use =flyspell= along with the =hunspell= backend to spellcheck a region/buffer
 
 (defun skw/flyspell-buffer-or-region ()
   "If region is active, calls flyspell-region.
-   Otherwise flyspell-buffer is called. "
+     Otherwise flyspell-buffer is called. "
   (interactive)
   (save-excursion
     (if (region-active-p)
@@ -1218,11 +1228,11 @@ Xorg).
   (xclip-mode 1))
 #+end_src
 
-*** Misc utilities
+*** Misc Utilities
 :PROPERTIES:
 :CUSTOM_ID: General-misc
 :END:
-***** add to auto-mode-alist
+***** Add to auto-mode-alist
 
 #+begin_src emacs-lisp :tangle yes
 (defun skw/add-auto-mode (mode &rest patterns)
@@ -1231,7 +1241,7 @@ Xorg).
     (add-to-list 'auto-mode-alist (cons pattern mode))))
 #+end_src
 
-***** list installed packages
+***** List installed packages
 
 #+begin_src emacs-lisp :tangle yes
 (defun skw/list-installed-packages ()
@@ -1296,7 +1306,7 @@ and such of course.
                 auto-mode-alist)))
 #+end_src
 
-***** tmux compliance
+***** Tmux compliance
 
 See [[https://wiki.archlinux.org/index.php/Emacs#Shift_.2B_Arrow_keys_not_working_in_emacs_within_tmux][here]].
 
@@ -1315,7 +1325,7 @@ See [[https://wiki.archlinux.org/index.php/Emacs#Shift_.2B_Arrow_keys_not_workin
 :PROPERTIES:
 :CUSTOM_ID: Programming
 :END:
-*** General stuff
+*** General Stuff
 :PROPERTIES:
 :CUSTOM_ID: Programming-general
 :END:
@@ -1416,7 +1426,7 @@ defaults (=yas-installed-snippets-dir=) to effectively override them.
   (yas-global-mode 1))
 #+end_src
 
-*** Language specific
+*** Language Specific
 :PROPERTIES:
 :CUSTOM_ID: Programming-specific
 :END:
@@ -1601,7 +1611,19 @@ Colorize html tags.
 :PROPERTIES:
 :CUSTOM_ID: Org
 :END:
-*** Add file extensions
+
+I use [[https://orgmode.org/][org-mode]] for a lot of things. I use it for my overall text editing, for
+literate programming (this config file is just an Org file), for /Getting Things
+Done (tm)/, for tracking my personal life, and more.
+
+My GTD configuration is detailed [[https://www.skywhi.net/posts/gtd-with-org.html][on my blog]]. In this file, I configure some sain
+opinionated default values. Some of these might be overwritten by other config
+files later on.
+
+*Table of Contents:*
+#+TOC: headlines 6 local
+
+*** File extensions
 :PROPERTIES:
 :CUSTOM_ID: Org-files
 :END:
@@ -1613,8 +1635,19 @@ File extensions for which org-mode should be the default major mode.
                    "\\.org$"
                    "\\.org_archive$"
                    "\\.note$"
-                   "\\.notes$"
                    "\\.txt$")
+#+end_src
+
+*** Contrib Repository
+:PROPERTIES:
+:CUSTOM_ID: Org-contrib
+:END:
+
+Packages from [[https://orgmode.org/worg/org-contrib/][org-contrib]].
+
+#+begin_src emacs-lisp :tangle yes
+(use-package org-contrib
+  :ensure t)
 #+end_src
 
 *** Outline
@@ -1622,91 +1655,39 @@ File extensions for which org-mode should be the default major mode.
 :CUSTOM_ID: Org-outline
 :END:
 
+Org buffers start with folded and truncated content. I like to use an odd number
+of stars for the headers and dim the leading ones.
+
 #+begin_src emacs-lisp :tangle yes
-;; Startup formatting options
 (setq org-startup-folded t
-      org-startup-indented t
-      org-indent-mode t
-      org-startup-truncated t)
-
-;; Stars, headings, entries, etc.
-(setq org-hide-leading-stars t
+      org-startup-truncated t
       org-odd-levels-only t
-      org-blank-before-new-entry '((heading . nil) (plain-list-item . nil))
-      org-tags-column -79)
-
-;; Source blocks
-(require 'org-tempo)
-(setq org-src-fontify-natively t
-      org-src-preserve-indentation t
-      org-src-window-setup 'reorganize-frame) ;; or 'current-window
-
-;; Misc
-(setq org-catch-invisible-edits 'show-and-error
-      org-enable-priority-commands nil)
+      org-hide-leading-stars t)
 #+end_src
 
-*** Keybindings
-:PROPERTIES:
-:CUSTOM_ID: Org-keybindings
-:END:
-
+Indent paragraphes according to outline structure.
 
 #+begin_src emacs-lisp :tangle yes
-;; Org apps
-(define-key global-map (kbd "C-c a")   'org-agenda)
-(define-key global-map (kbd "C-c c")   'org-capture)
+(org-indent-mode)
+(setq org-startup-indented t)
+#+end_src
 
-;; Links
+When adding a heading or item, make sure the cursor goes to the end of the line first.
+
+#+begin_src emacs-lisp :tangle yes
+(setq org-blank-before-new-entry '((heading . nil) (plain-list-item . nil))
+      org-M-RET-may-split-line nil)
+#+end_src
+
+*** Links
+:PROPERTIES:
+:CUSTOM_ID: Org-links
+:END:
+
+#+begin_src emacs-lisp :tangle yes
 (define-key global-map (kbd "C-c M-l") 'org-store-link)
 (define-key global-map (kbd "C-c C-l") 'org-insert-link-global)
 (define-key org-mode-map (kbd "C-c M-o") 'org-toggle-link-display)
-
-;; Navigate between source blocks
-(define-key org-mode-map (kbd "C-c C-f") 'org-next-block)
-(define-key org-mode-map (kbd "C-c C-b") 'org-previous-block)
-
-;; Have M-RET behave nicely
-(setq org-M-RET-may-split-line nil)
-
-;; Still allow S-<arrow> to switch between windows
-(add-hook 'org-shiftup-final-hook    'windmove-up)
-(add-hook 'org-shiftdown-final-hook  'windmove-down)
-(add-hook 'org-shiftleft-final-hook  'windmove-left)
-(add-hook 'org-shiftright-final-hook 'windmove-right)
-#+end_src
-
-*** Agenda
-:PROPERTIES:
-:CUSTOM_ID: Org-agenda
-:END:
-
-Set some options, remove pre-existing agenda files and commands.
-
-#+begin_src emacs-lisp :tangle yes
-(setq org-agenda-compact-blocks nil
-      org-agenda-dim-blocked-tasks nil
-      org-agenda-time-leading-zero t)
-
-(setq org-agenda-files '())
-(setq org-agenda-custom-commands '())
-#+end_src
-
-*** Capture
-:PROPERTIES:
-:CUSTOM_ID: Org-capture
-:END:
-
-First get rid of any pre-existing capture template.
-
-#+begin_src emacs-lisp :tangle yes
-(setq org-capture-templates '())
-#+end_src
-
-Align tags on the captured item.
-
-#+begin_src emacs-lisp :tangle yes
-(add-hook 'org-capture-before-finalize-hook 'org-align-all-tags)
 #+end_src
 
 *** Refile
@@ -1715,56 +1696,64 @@ Align tags on the captured item.
 :END:
 
 #+begin_src emacs-lisp :tangle yes
-(setq org-refile-use-outline-path t ;; Use outline path with ido
-      org-outline-path-complete-in-steps nil
-      org-refile-allow-creating-parent-nodes 'confirm
-      org-refile-use-cache nil)
+(setq org-refile-use-outline-path 'file ;; Include filename in path
+      org-outline-path-complete-in-steps nil ;; Play nice with ido
+      org-refile-allow-creating-parent-nodes 'confirm ;; Create structure if needed
+      org-refile-use-cache nil) ;; No need to cache anything
 #+end_src
 
 *** Exporting
 :PROPERTIES:
 :CUSTOM_ID: Org-exporting
 :END:
-***** settings
 
 Include the main exporters and set the right encoding.
 
 #+begin_src emacs-lisp :tangle yes
-(require 'ox-html)
-(require 'ox-org)
-(require 'ox-md)
-
-(setq org-export-coding-system 'utf-8)
-#+end_src
-
-***** extras
-
-#+begin_src emacs-lisp :tangle yes
-(use-package org-contrib
+(use-package ox-md
   :ensure t)
-;; (require 'ox-extra)
-;; (ox-extras-activate '(latex-header-blocks ignore-headlines))
-#+end_src
 
-***** =reveal.js=
+(use-package ox-org
+  :ensure t)
 
-Export to HTML presentation.
+(use-package ox-rss
+  :ensure t)
 
-#+begin_src emacs-lisp :tangle yes
-(use-package ox-reveal
+(use-package ox-html
   :ensure t
   :init
-  (setq org-reveal-root ""
-        org-reveal-mathjax t))
+  (setq org-html-postamble nil
+        org-export-with-section-numbers nil
+        org-export-with-toc nil
+        org-export-coding-system 'utf-8
+        org-export-with-broken-links t))
 #+end_src
 
-***** =twbs=
+*** Structure Templates
+:PROPERTIES:
+:CUSTOM_ID: Org-tempo
+:END:
 
-Export to Twitter Bootstrap (html).
+With [[https://orgmode.org/manual/Structure-Templates.html][org-tempo]], typing =<s <tab>= inserts a code block while =C-c k= prompts for
+a template type to be inserted at point.
 
 #+begin_src emacs-lisp :tangle yes
-(use-package ox-twbs
-  :ensure t)
+(use-package org-tempo
+  :ensure nil
+  :after org)
+(define-key org-mode-map (kbd "C-c k") 'org-insert-structure-template)
+#+end_src
+
+Here my preferences when it comes to code blocks.
+
+#+begin_src emacs-lisp :tangle yes
+;; Navigate between source blocks
+(define-key org-mode-map (kbd "C-c C-f") 'org-next-block)
+(define-key org-mode-map (kbd "C-c C-b") 'org-previous-block)
+
+(setq org-src-fontify-natively t ;; fontify code in code blocks
+      org-src-preserve-indentation t ;; keep leading whitespaces
+      org-src-window-setup 'current-window) ;; edit code block in current window
 #+end_src
 
 *** Babel
@@ -1772,9 +1761,9 @@ Export to Twitter Bootstrap (html).
 :CUSTOM_ID: Org-babel
 :END:
 
-#+begin_src emacs-lisp :tangle yes
-(setq org-confirm-babel-evaluate nil)
+Languages which can be evaluated in Org buffers.
 
+#+begin_src emacs-lisp :tangle yes
 (org-babel-do-load-languages
  'org-babel-load-languages
  '((awk . t)
@@ -1785,20 +1774,123 @@ Export to Twitter Bootstrap (html).
    (haskell . t)
    (js . t)
    (org . t)
+   (perl . t)
+   (plantuml . t)
    (python . t)
+   (ruby . t)
    (shell . t)))
 #+end_src
 
-*** Archiving
+Do prompt before executing any code block.
+
+#+begin_src emacs-lisp :tangle yes
+(setq org-confirm-babel-evaluate t)
+#+end_src
+
+*** Agenda
 :PROPERTIES:
-:CUSTOM_ID: Org-archiving
+:CUSTOM_ID: Org-agenda
+:END:
+
+Reset agenda files and commands, they will be added by other configuration files later
+on.
+
+#+begin_src emacs-lisp :tangle yes
+(define-key global-map (kbd "C-c a") 'org-agenda)
+
+(setq org-agenda-files '()
+      org-agenda-custom-commands '())
+#+end_src
+
+Some personal display preferences.
+
+#+begin_src emacs-lisp :tangle yes
+(setq org-agenda-compact-blocks nil
+      org-agenda-dim-blocked-tasks nil
+      org-agenda-time-leading-zero t
+      org-agenda-use-time-grid nil
+      org-agenda-skip-scheduled-if-done nil
+      org-agenda-scheduled-leaders '("" "Sched.%2dx: ")
+      org-agenda-tags-column 'auto) ;; align tags right
+#+end_src
+
+*** Capture
+:PROPERTIES:
+:CUSTOM_ID: Org-capture
+:END:
+
+[[https://howardism.org/Technical/Emacs/capturing-intro.html][Here]] is an introduction to [[https://orgmode.org/manual/Capture.html][org-capture]]. Hitting =C-c c= from anywhere in Emacs
+will prompt for a capture template.
+
+#+begin_src emacs-lisp :tangle yes
+(define-key global-map (kbd "C-c c") 'org-capture)
+
+(setq org-capture-templates '()) ;; reset templates
+(add-hook 'org-capture-before-finalize-hook 'org-align-all-tags) ;; align tags
+#+end_src
+
+*** TODOs
+:PROPERTIES:
+:CUSTOM_ID: Org-todos
+:END:
+
+Here are some convenience options related to state changes:
+
+#+begin_src emacs-lisp :tangle yes
+;; This enables fast selection for TODO keywords
+;; Hitting "C-c C-t d" will select "DONE" for example
+(setq org-use-fast-todo-selection t)
+
+;; Enable logging of the creation of a new TODO item
+(setq org-treat-insert-todo-heading-as-state-change t)
+
+;; Log all state changes into the "LOGBOOK" drawer
+(setq org-log-into-drawer "LOGBOOK")
+
+;; When no modifier, always log the DONE timestamp
+(setq org-log-done 'time)
+#+end_src
+
+*** Tags
+:PROPERTIES:
+:CUSTOM_ID: Org-tags
 :END:
 
 #+begin_src emacs-lisp :tangle yes
-(setq org-archive-mark-done nil
-      org-archive-subtree-add-inherited-tags t
-      org-archive-save-context-info '(time file category todo priority itags olpath ltags))
+(setq org-tags-column -79) ;; Align tags to the right
+#+end_src
 
-(require 'org-archive-subtree-hierarchical)
-(define-key org-mode-map (kbd "C-c C-x M-a") 'org-archive-subtree-hierarchical)
+*** Effort
+:PROPERTIES:
+:CUSTOM_ID: Org-effort
+:END:
+
+Making the property uppercase like the others.
+
+#+begin_src emacs-lisp :tangle yes
+(setq org-effort-property "EFFORT")
+#+end_src
+
+*** Priorities
+:PROPERTIES:
+:CUSTOM_ID: Org-priorities
+:END:
+
+#+begin_src emacs-lisp :tangle yes
+(setq org-enable-priority-commands t) ;; Move priorities with S-Up / S-Down
+#+end_src
+
+*** Misc Options
+:PROPERTIES:
+:CUSTOM_ID: Org-misc
+:END:
+
+#+begin_src emacs-lisp :tangle yes
+(setq org-fold-catch-invisible-edits 'show-and-error) ;; do not edit invisible regions
+
+;; Still allow S-<arrow> to switch between windows
+(add-hook 'org-shiftup-final-hook    'windmove-up)
+(add-hook 'org-shiftdown-final-hook  'windmove-down)
+(add-hook 'org-shiftleft-final-hook  'windmove-left)
+(add-hook 'org-shiftright-final-hook 'windmove-right)
 #+end_src

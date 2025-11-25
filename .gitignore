@@ -59,6 +59,9 @@
 !tmux/
 !tmux/tmux.conf
 
+!vimium/
+!vimium/vimium-options.json
+
 !xorg/
 !xorg/typematrix.xkb
 !xorg/wallpapers/

@@ -78,6 +78,10 @@ Pretty standard configuration for the [[https://github.com/ranger/ranger][ranger
 
 I use scripts from =bin/tmux-*= to load sessions with pre-defined layouts.
 
+*** vimium
+
+My [[https://github.com/philc/vimium][vimium]] config file.
+
 *** xorg
 
 Contains everything related to /X11/. There's a /xinitrc/, a /Xresources/ with

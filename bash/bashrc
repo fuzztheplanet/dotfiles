@@ -104,6 +104,7 @@ if [ -x "$(command -v irssi)" ]; then
     alias irssi-hackerzvoice='irssi --config=<((cat ${HOME}/.irssi/config 2>/dev/null && cat ${HOME}/.my_private/irssi/hackerzvoice 2>/dev/null))'
 fi
 
+
 # Reset setxkbmap to fr+bepo
 alias bepomap='setxkbmap fr,fr oss,bepo grp:alt_caps_toggle,grp_led:scroll'
 
@@ -127,7 +128,13 @@ alias pz='ps -aux|grep -v grep |grep'
 alias please='sudo $(fc -ln -1)'
 alias plz='please'
 alias q='exit'
+alias reset-dhcpcd='sudo dhcpcd && sleep 3 && sudo resolvconf -u '
+alias remove-empty-files='find . -size 0 -print0 | xargs -0 rm -- '
+alias remove-empty-directories='find . -type d -empty -delete '
 alias x='cd $HOME && startx'
+
+# My docker stuff
+[ -f "${HOME}/tools/dockers/aliases.sh" ] && source "${HOME}/tools/dockers/aliases.sh"
 
 # Utility functions
 mkdircd() {
