@@ -167,6 +167,7 @@ default.
 (global-subword-mode t)          ;; Treat camelCase as 2 words
 (global-font-lock-mode t)        ;; Syntax highlighting
 (global-prettify-symbols-mode t) ;; Prettify things if possible
+(visual-line-mode t)             ;; Better word-wrap and truncation
 
 ;; Hooks
 (add-hook 'find-file-hook 'goto-address-mode)      ;; Prettify urls and emails
@@ -1620,9 +1621,6 @@ My GTD configuration is detailed [[https://www.skywhi.net/posts/gtd-with-org.htm
 opinionated default values. Some of these might be overwritten by other config
 files later on.
 
-*Table of Contents:*
-#+TOC: headlines 6 local
-
 *** File extensions
 :PROPERTIES:
 :CUSTOM_ID: Org-files
@@ -1710,17 +1708,14 @@ When adding a heading or item, make sure the cursor goes to the end of the line 
 Include the main exporters and set the right encoding.
 
 #+begin_src emacs-lisp :tangle yes
-(use-package ox-md
-  :ensure t)
-
-(use-package ox-org
-  :ensure t)
+(require 'ox-md)
+(require 'ox-org)
 
 (use-package ox-rss
   :ensure t)
 
 (use-package ox-html
-  :ensure t
+  :ensure nil
   :init
   (setq org-html-postamble nil
         org-export-with-section-numbers nil
@@ -1809,7 +1804,7 @@ Some personal display preferences.
       org-agenda-dim-blocked-tasks nil
       org-agenda-time-leading-zero t
       org-agenda-use-time-grid nil
-      org-agenda-skip-scheduled-if-done nil
+      org-agenda-skip-scheduled-if-done t ;; !!
       org-agenda-scheduled-leaders '("" "Sched.%2dx: ")
       org-agenda-tags-column 'auto) ;; align tags right
 #+end_src
@@ -1876,8 +1871,20 @@ Making the property uppercase like the others.
 :CUSTOM_ID: Org-priorities
 :END:
 
+Move priorities with =S-Up= and =S-Down=.
+
 #+begin_src emacs-lisp :tangle yes
-(setq org-enable-priority-commands t) ;; Move priorities with S-Up / S-Down
+(setq org-enable-priority-commands t)
+#+end_src
+
+*** Archiving
+
+See [[file:my_elisp/org-archive-subtree-hierarchical.el][org-archive-subtree-hierarchical.el]] on how to preserve the subtree's
+structure while archiving.
+
+#+begin_src emacs-lisp :tangle yes
+(require 'org-archive-subtree-hierarchical)
+(setq org-archive-default-command 'org-archive-subtree-hierarchical)
 #+end_src
 
 *** Misc Options
