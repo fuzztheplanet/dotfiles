@@ -21,6 +21,7 @@ URxvt*transparent:    false
 URxvt*shading:        40
 URxvt*dynamicColors:  on
 URxvt*underlineColor: yellow
+URxvt*cursorColor:    cyan
 URxvt*cursorBlink:    true
 URxvt*geometry:       400x400
 !! https://www.reddit.com/r/archlinux/comments/105t4ye/rxvtunicode_opens_in_the_middle_of_the_screen/
@@ -39,7 +40,7 @@ URxvt.keysym.M-u:           perl:url-select:select_next
 URxvt.keysym.M-Escape:      perl:keyboard-select:activate
 URxvt.keysym.M-s:           perl:keyboard-select:search
 !! clipboard
-URxvt.clipboard.autocopy:   false
+URxvt.clipboard.autocopy:   true
 URxvt.keysym.M-c:           perl:clipboard:copy
 URxvt.keysym.M-v:           perl:clipboard:paste
 !! Xft Settings
