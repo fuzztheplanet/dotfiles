@@ -74,6 +74,31 @@ deploy_emacs() {
 }
 
 
+### gf
+_register_module "gf"
+
+install_gf() {
+
+    if [ "$1" = "install" ]; then
+        go get -u github.com/tomnomnom/gf
+
+    elif [ "$1" = "uninstall" ]; then
+        go get -u github.com/tomnomnom/gf@none
+    fi
+}
+
+deploy_gf() {
+
+    if [ "$1" = "deploy" ]; then
+        ln -sf "${SRC_DIR}/gf" "${DEST_DIR}/.gf"
+
+    elif [ "$1" = "remove" ]; then
+        _rm "${DEST_DIR}/.gf"
+    fi
+}
+
+
+
 ### Git
 _register_module "git"
 git_pkgs="git"

@@ -98,6 +98,13 @@ if [ -x "$(command -v rg)" ]; then
     alias rgila='rg -i -l -a'
 fi
 
+# gf (https://github.com/tomnomnom/gf)
+if [ -x "$(command -v gf)" ]; then
+    complete -W "\$(gf -list)" gf
+fi
+
+
+
 # Start irssi with personal config and private settings
 if [ -x "$(command -v irssi)" ]; then
     alias irssi-libera='irssi --config=<((cat ${HOME}/.irssi/config 2>/dev/null && cat ${HOME}/.my_private/irssi/libera 2>/dev/null))'
