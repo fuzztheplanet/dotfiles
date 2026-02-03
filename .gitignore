@@ -52,8 +52,11 @@
 !profiles/arch-laptop
 
 !ranger/
+!ranger/commands.py
 !ranger/rc.conf
 !ranger/rifle.conf
+!ranger/scope.sh
+
 
 !tmux/
 !tmux/tmux.conf
