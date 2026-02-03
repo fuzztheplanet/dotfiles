@@ -16,6 +16,7 @@
 !bin/grab_openbsd.sh
 !bin/kill-tmux.sh
 !bin/netplz.sh
+!bin/preview-file.sh
 !bin/redshift_toggle.sh
 !bin/spawn-tmux.sh
 !bin/start-vm.sh

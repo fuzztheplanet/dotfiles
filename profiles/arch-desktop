@@ -7,7 +7,7 @@ PKG_UNINSTALL_FUNC="yay -Rsn"
 
 ### Bash
 _register_module "bash"
-bash_pkgs="bash bash-completion tree unzip curl ripgrep"
+bash_pkgs="bash bash-completion tree unzip curl ripgrep fd fzf bat"
 
 install_bash() {
 
@@ -249,7 +249,7 @@ deploy_ranger() {
     if [ "$1" = "deploy" ]; then
         mkdir -p "${DEST_DIR}/.config/ranger"
         ln -sf "${SRC_DIR}/ranger/rc.conf" "${DEST_DIR}/.config/ranger/rc.conf"
-        ln -sf "${SRC_DIR}/newsboat/rifle.conf" "${DEST_DIR}/.config/ranger/rifle.conf"
+        ln -sf "${SRC_DIR}/ranger/rifle.conf" "${DEST_DIR}/.config/ranger/rifle.conf"
 
     elif [ "$1" = "remove" ]; then
         _rm "${DEST_DIR}/.config/ranger"

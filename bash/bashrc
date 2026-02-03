@@ -10,8 +10,8 @@ LANG=en_US.UTF-8
 LC_ALL=en_US.UTF-8
 
 HISTFILE="$HOME/.sh_history"
-HISTSIZE=1000
-HISTFILESIZE=2000
+HISTSIZE=10000
+HISTFILESIZE=10000
 HISTCONTROL=ignoredups:ignorespace
 
 # Add $1 to $PATH if not already present
@@ -21,36 +21,33 @@ pathadd() {
     fi
 }
 
+
 # Add custom, rust and go binaries to $PATH
 [ -d "${HOME}/.dotfiles/bin" ] && pathadd "${HOME}/.dotfiles/bin"
 [ -d "${HOME}/.cargo/bin" ] && pathadd "${HOME}/.cargo/bin"
 [ -d "${HOME}/go/bin" ] && pathadd "${HOME}/go/bin"
 
+
 # Set default editor
 if [ -x "$(command -v emacsclient)" ] ; then
-    EDITOR='emacsclient -c'
-    ALTERNATE_EDITOR='emacs'
-    VISUAL=$EDITOR
+    EDITOR='emacsclient -t -a ""'
+    ALTERNATE_EDITOR='emacsclient -t -a ""'
+    VISUAL='emacsclient -t -a ""'
 
 elif [ -x "$(command -v emacs)" ] ; then
-    EDITOR='emacs'
-    ALTERNATE_EDITOR='emacs'
-    VISUAL='emacs'
-
-elif [ -x "$(command -v mg)" ] ; then
-    EDITOR="mg"
-    ALTERNATE_EDITOR="mg"
-    VISUAL="mg"
+    EDITOR=emacs
+    ALTERNATE_EDITOR=emacs
+    VISUAL=emacs
 
 elif [ -x "$(command -v nano)" ] ; then
-    EDITOR="nano"
-    ALTERNATE_EDITOR="nano"
-    VISUAL="nano"
+    EDITOR=nano
+    ALTERNATE_EDITOR=nano
+    VISUAL=nano
 
-else
-    EDITOR="vi"
-    ALTERNATE_EDITOR="vi"
-    VISUAL="vi"
+else # God have mercy
+    EDITOR=vi
+    ALTERNATE_EDITOR=vi
+    VISUAL=vi
 fi
 
 alias e=${EDITOR}
@@ -74,8 +71,6 @@ fi
 [ -x "$(command -v curl)" ]     && alias weather='curl -s wttr.in/?nFQ '
 [ -x "$(command -v less)" ]     && alias more='less '
 [ -x "$(command -v newsboat)" ] && alias newsboat='newsboat -u ${HOME}/.my_private/newsboat/urls '
-[ -x "$(command -v ranger)" ]   && alias r='ranger '
-[ -x "$(command -v rifle)" ]    && alias o='rifle '
 [ -x "$(command -v sxiv)" ]     && alias sxiv='sxiv -a '
 [ -x "$(command -v tree)" ]     && alias tree='tree -F '
 [ -x "$(command -v urxvtc)" ]   && alias mm='urxvtc -cd "$PWD" & '
@@ -98,19 +93,132 @@ if [ -x "$(command -v rg)" ]; then
     alias rgila='rg -i -l -a'
 fi
 
+# Ranger / Rifle
+if [ -x "$(command -v ranger)" ]; then
+    ranger() {
+        if [ -n "$RANGER_LEVEL" ]; then
+            echo "Already inside ranger"
+            return 1
+        fi
+        command ranger "$@"
+    }
+
+    alias o='rifle '
+    alias r='ranger '
+fi
+
 # gf (https://github.com/tomnomnom/gf)
 if [ -x "$(command -v gf)" ]; then
     complete -W "\$(gf -list)" gf
 fi
 
+# fzf (requires bat, rifle, fd and rg)
+if [ -x "$(command -v fzf)" ]; then
 
+    eval "$(fzf --bash)"
+
+    # Select items from stdin with fzf. C-o will open files with emacs and Enter
+    # with rifle. M-o will print selection to stdout, M-i will store it in the
+    # clipboard. M-d and M-a (de)select everything and C-/ toggles the preview
+    # windows. C-j and C-k scroll the preview window.
+    fo() {
+        IFS=$'\n' fzf --multi --ansi \
+           --scheme=path \
+           --reverse --border --height 80% \
+           --bind 'enter:execute:rifle {+}' \
+           --bind 'ctrl-o:execute:$EDITOR {+}' \
+           --bind "alt-o:become(echo {+} | tr ' ' '\n')" \
+           --bind 'alt-i:execute-silent(for item in {+}; do echo $item; done | xsel -i)' \
+           --bind 'alt-a:select-all,alt-d:deselect-all,ctrl-/:toggle-preview' \
+           --bind 'ctrl-j:preview-down,ctrl-k:preview-up' \
+           --preview 'preview-file.sh {}'
+    }
+
+    # List files in directory $1 with 'fd' options $@ and send them to 'fo'
+    ff() {
+        cd ${1:-.}
+        shift
+        fd "$@" 2>/dev/null | fo
+        cd - 1>/dev/null
+    }
+
+    ## Same as 'ff' but search all hidden / ignored files
+    ffa() {
+        cd ${1:-.}
+        shift
+        fd -u "$@" 2>/dev/null | fo
+        cd - 1>/dev/null
+    }
+
+    # Search with 'rg' for files in $1 matching given query. Open them in emacs
+    # with C-o and with rifle with Enter. C-f opens a temporary files with all
+    # the matches. M-o prints them to stdout, M-i copies them to the clipboard,
+    # M-h copies only the filenames. C-j and C-k scroll the preview windows. M-d
+    # and M-a (de)select everything and C-/ toggles the preview window.
+    fr() {
+        RELOAD='reload:rg --line-number --color=always --smart-case {q} || :'
+        OPENER_EMACS='if [[ $FZF_SELECT_COUNT -eq 0 ]]; then
+            $EDITOR +{2} {1}
+          else
+            for item in {+}; do echo $item | cut -d ":" -f1; done | xargs $EDITOR
+          fi'
+        OPENER_RIFLE='for item in {+}; do echo $item | cut -d ":" -f1; done | xargs rifle'
+
+        cd ${1:-.}
+        shift
+        fzf --ansi --multi \
+            --reverse --height 80% --border \
+            --bind "start:$RELOAD" --bind "change:$RELOAD" \
+            --bind "enter:execute:$OPENER_RIFLE" \
+            --bind "ctrl-o:execute:$OPENER_EMACS" \
+            --bind "ctrl-f:execute:$EDITOR {+f}" \
+            --bind 'alt-o:become(for item in {+}; do echo $item; done)' \
+            --bind 'alt-a:select-all,alt-d:deselect-all,ctrl-/:toggle-preview' \
+            --bind "alt-i:execute-silent(echo {+} | tr ' ' '\n' | xsel -i)" \
+            --bind 'alt-h:execute-silent(for item in {+}; do echo $item | cut -d":" -f1; done | sort -u | xsel -i)' \
+            --bind 'ctrl-j:preview-down,ctrl-k:preview-up' \
+            --delimiter : \
+            --preview 'bat --style=header --color=always -H {2} {1}' \
+            --preview-window 'down'
+
+        cd - 1>/dev/null
+    }
+
+    # Same as 'fr' but with hidden / ignored files
+    fra() {
+        RELOAD='reload:rg -uu --line-number --color=always --smart-case {q} || :'
+        OPENER='if [[ $FZF_SELECT_COUNT -eq 0 ]]; then
+            emacsclient -t +{2} {1}
+          else
+            emacsclient -t {+f}
+          fi'
+
+        cd ${1:-.}
+        shift
+                fzf --ansi --multi \
+            --reverse --height 80% --border \
+            --bind "start:$RELOAD" --bind "change:$RELOAD" \
+            --bind "enter:execute:$OPENER_RIFLE" \
+            --bind "ctrl-o:execute:$OPENER_EMACS" \
+            --bind "ctrl-f:execute:$EDITOR {+f}" \
+            --bind 'alt-o:become(for item in {+}; do echo $item; done)' \
+            --bind 'alt-a:select-all,alt-d:deselect-all,ctrl-/:toggle-preview' \
+            --bind "alt-i:execute-silent(echo {+} | tr ' ' '\n' | xsel -i)" \
+            --bind 'alt-h:execute-silent(for item in {+}; do echo $item | cut -d":" -f1; done | sort -u | xsel -i)' \
+            --bind 'ctrl-j:preview-down,ctrl-k:preview-up' \
+            --delimiter : \
+            --preview 'bat --style=header --color=always -H {2} {1}' \
+            --preview-window 'down'
+
+        cd - 1>/dev/null
+    }
+fi
 
 # Start irssi with personal config and private settings
 if [ -x "$(command -v irssi)" ]; then
     alias irssi-libera='irssi --config=<((cat ${HOME}/.irssi/config 2>/dev/null && cat ${HOME}/.my_private/irssi/libera 2>/dev/null))'
     alias irssi-hackerzvoice='irssi --config=<((cat ${HOME}/.irssi/config 2>/dev/null && cat ${HOME}/.my_private/irssi/hackerzvoice 2>/dev/null))'
 fi
-
 
 # Reset setxkbmap to fr+bepo
 alias bepomap='setxkbmap fr,fr oss,bepo grp:alt_caps_toggle,grp_led:scroll'
@@ -139,9 +247,6 @@ alias reset-dhcpcd='sudo dhcpcd && sleep 3 && sudo resolvconf -u '
 alias remove-empty-files='find . -size 0 -print0 | xargs -0 rm -- '
 alias remove-empty-directories='find . -type d -empty -delete '
 alias x='cd $HOME && startx'
-
-# My docker stuff
-[ -f "${HOME}/tools/dockers/aliases.sh" ] && source "${HOME}/tools/dockers/aliases.sh"
 
 # Utility functions
 mkdircd() {
@@ -219,7 +324,7 @@ xorg-switch-theme() {
 
 # Convert html to pdf with chromium's headless browser
 html-to-pdf() {
-    chromium --headless --print-to-pdf="$2" --print-to-pdf-no-header "$2"
+    chromium --headless --print-to-pdf="$2" --print-to-pdf-no-header "$1"
 }
 
 # Get rid of non-ascii chars in a file ($1)
@@ -235,6 +340,8 @@ remove-bom() {
     sed -i '1s/^\xEF\xBB\xBF//' "$1"
 }
 
+# My docker stuff
+[ -f "${HOME}/tools/dockers/aliases.sh" ] && source "${HOME}/tools/dockers/aliases.sh"
 
 # Finally export all the thingz! (just in case)
 export PS1
