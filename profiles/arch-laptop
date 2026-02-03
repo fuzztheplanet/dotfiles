@@ -152,10 +152,10 @@ deploy_gnupg() {
 
 
 ### i3wm
-_register_module "i3wm"
+_register_module "i3"
 i3wm_pkgs="i3-wm i3status dmenu"
 
-install_i3wm() {
+install_i3() {
 
     if [ "$1" = "install" ]; then
         _add_to_pkgs ${i3wm_pkgs}
@@ -165,12 +165,12 @@ install_i3wm() {
     fi
 }
 
-deploy_i3wm() {
+deploy_i3() {
 
     if [ "$1" = "deploy" ]; then
         mkdir -p "${DEST_DIR}/.config/i3/config"
         ln -sf "${SRC_DIR}/i3/i3.conf" "${DEST_DIR}/.config/i3/config/i3.conf"
-        ln -sf "${SRC_DIR}/i3/statusbar_laptop" "${DEST_DIR}/.config/i3/statusbar"
+        ln -sf "${SRC_DIR}/i3/statusbar" "${DEST_DIR}/.config/i3/statusbar"
 
     elif [ "$1" = "remove" ]; then
         _rm "${DEST_DIR}/.config/i3"
@@ -251,6 +251,8 @@ deploy_ranger() {
         mkdir -p "${DEST_DIR}/.config/ranger"
         ln -sf "${SRC_DIR}/ranger/rc.conf" "${DEST_DIR}/.config/ranger/rc.conf"
         ln -sf "${SRC_DIR}/ranger/rifle.conf" "${DEST_DIR}/.config/ranger/rifle.conf"
+        ln -sf "${SRC_DIR}/ranger/scope.sh" "${DEST_DIR}/.config/ranger/scope.sh"
+        ln -sf "${SRC_DIR}/ranger/commands.py" "${DEST_DIR}/.config/ranger/commands.py"
 
     elif [ "$1" = "remove" ]; then
         _rm "${DEST_DIR}/.config/ranger"

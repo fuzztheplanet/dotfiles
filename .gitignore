@@ -40,8 +40,7 @@
 
 !i3/
 !i3/i3.conf
-!i3/statusbar_desktop
-!i3/statusbar_laptop
+!i3/statusbar
 
 !irssi/
 !irssi/config
@@ -50,7 +49,6 @@
 !newsboat/config
 
 !profiles/
-!profiles/arch-desktop
 !profiles/arch-laptop
 
 !ranger/
