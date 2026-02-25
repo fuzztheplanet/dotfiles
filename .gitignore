@@ -15,6 +15,7 @@
 !bin/gen_ssh_keys.sh
 !bin/grab_openbsd.sh
 !bin/kill-tmux.sh
+!bin/locker.sh
 !bin/netplz.sh
 !bin/preview-file.sh
 !bin/redshift_toggle.sh
@@ -72,5 +73,3 @@
 !xorg/Xresources
 !xorg/Xlight_theme
 !xorg/Xdark_theme
-!xorg/xscreensaver
-!xorg/xscreensaver_blank

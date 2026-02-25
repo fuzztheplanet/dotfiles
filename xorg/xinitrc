@@ -14,7 +14,6 @@ setxkbmap fr,fr oss,bepo grp:alt_caps_toggle,grp_led:scroll
 
 # Start background programs first
 [ -n "$(command -v urxvtd)" ]       && urxvtd -q -o -f &
-[ -n "$(command -v xscreensaver)" ] && xscreensaver -no-splash &
 [ -n "$(command -v amixer)" ]       && amixer sset 'Master' 10% &
 [ -n "$(command -v unclutter)" ]    && unclutter -root -idle 1 &
 [ -n "$(command -v autocutsel)" ]   && autocutsel -selection PRIMARY -fork &
