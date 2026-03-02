@@ -288,7 +288,7 @@ deploy_tmux() {
 
 ### XORG
 _register_module "xorg"
-xorg_pkgs="xorg xorg-xinit xorg-xrdb rxvt-unicode xclip feh unclutter scrot htop ttf-inconsolata xf86-video-intel ttf-dejavu alsa-utils sxiv xorg-xbacklight redshift autocutsel"
+xorg_pkgs="xorg xorg-xinit xorg-xrdb rxvt-unicode xclip feh unclutter scrot htop ttf-inconsolata xf86-video-intel ttf-dejavu alsa-utils sxiv xorg-xbacklight autocutsel xautolock"
 
 install_xorg() {
 

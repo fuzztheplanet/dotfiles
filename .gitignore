@@ -18,7 +18,6 @@
 !bin/locker.sh
 !bin/netplz.sh
 !bin/preview-file.sh
-!bin/redshift_toggle.sh
 !bin/spawn-tmux.sh
 !bin/start-vm.sh
 !bin/tmux-blog.sh
