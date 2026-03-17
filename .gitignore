@@ -11,18 +11,16 @@
 
 !bin/
 !bin/attach-tmux.sh
-!bin/bakplz.sh
-!bin/gen_ssh_keys.sh
-!bin/grab_openbsd.sh
+!bin/gen-cool-ssh-keys.sh
+!bin/grab-openbsd.sh
 !bin/kill-tmux.sh
-!bin/locker.sh
-!bin/netplz.sh
+!bin/xorg-locker.sh
 !bin/preview-file.sh
 !bin/spawn-tmux.sh
 !bin/start-vm.sh
 !bin/tmux-blog.sh
 !bin/tmux-monitor.sh
-!bin/watchdir.sh
+!bin/watch-directory.sh
 
 !emacs/
 !emacs/init.el

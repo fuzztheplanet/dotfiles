@@ -1,11 +1,11 @@
 #!/bin/sh
 
-# USAGE:   ./grab_openbsd.sh [version] [arch] [img] [mirror]
-# EXAMPLE: ./grab_openbsd.sh 6.8 i386 miniroot https://cdn.openbsd.org/pub/OpenBSD
+# USAGE:   ./grab-openbsd.sh [version] [arch] [img] [mirror]
+# EXAMPLE: ./grab-openbsd.sh 7.8 i386 miniroot https://cdn.openbsd.org/pub/OpenBSD
 
 
 # DEFAULTS
-VERSION=${1:-"7.0"}
+VERSION=${1:-"7.8"}
 ARCH=${2:-"amd64"}
 IMAGE=${3:-"install"}
 MIRROR=${4:-"https://ftp.openbsd.org/pub/OpenBSD"}

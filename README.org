@@ -37,8 +37,8 @@ functions that I use regularly.
 
 *** bin
 
-Some utility scripts that I use more or less frequently. Careful, they might
-be poorly written and not maintained.
+Some utility scripts that I use more or less frequently. Careful, they might be
+poorly written and/or not maintained.
 
 *** emacs
 

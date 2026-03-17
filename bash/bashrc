@@ -1,34 +1,19 @@
 #!/bin/sh
 
-# Environment variables and global options
+# --- Environment variables and global options ---
 set -o emacs
 shopt -s checkwinsize
 
 TERM=xterm-256color
-
 LANG=en_US.UTF-8
 LC_ALL=en_US.UTF-8
-
 HISTFILE="$HOME/.sh_history"
 HISTSIZE=10000
 HISTFILESIZE=10000
 HISTCONTROL=ignoredups:ignorespace
 
-# Add $1 to $PATH if not already present
-pathadd() {
-    if [ -d "$1" ] && [[ ":$PATH:" != *":$1:"* ]]; then
-        PATH="${PATH:+"$PATH:"}$1"
-    fi
-}
 
-
-# Add custom, rust and go binaries to $PATH
-[ -d "${HOME}/.dotfiles/bin" ] && pathadd "${HOME}/.dotfiles/bin"
-[ -d "${HOME}/.cargo/bin" ] && pathadd "${HOME}/.cargo/bin"
-[ -d "${HOME}/go/bin" ] && pathadd "${HOME}/go/bin"
-
-
-# Set default editor
+# --- Default editor ---
 if [ -x "$(command -v emacsclient)" ] ; then
     EDITOR='emacsclient -t -a ""'
     ALTERNATE_EDITOR='emacsclient -t -a ""'
@@ -53,21 +38,259 @@ fi
 alias e=${EDITOR}
 alias emc=${EDITOR}
 
-# Nicer prompt
+
+# --- Nicer prompt ---
 if [ $(id -u) == "0" ]; then
     PS1='\[\e[0;31m\]\u\[\e[m\]@\h:\[\e[0;35m\]\w\[\e[m\]\[\e[0;31m\]\n$\[\e[m\] '
 else
     PS1='\[\e[0;32m\]\u\[\e[m\]@\h:\[\e[0;35m\]\w\[\e[m\]\[\e[0;32m\]\n$\[\e[m\] '
 fi
 
-# OpenBSD specific
+
+# --- Aliases for standard utils ---
+alias bepomap='setxkbmap fr,fr oss,bepo grp:alt_caps_toggle,grp_led:scroll'
+alias dm='dmesg | tail'
+alias h='fc -l'
+alias hh='fc -l -1 -300|grep'
+alias hhh='fc -l -1 -${HISTSIZE}|grep'
+alias hi='ping -c 3 example.com'
+alias j='jobs'
+alias ls='ls -F --color=auto'
+alias l='ls -F --color=auto'
+alias la='ls -aF --color=auto'
+alias ll='ls -lisahF --group-directories-first'
+alias llm='ls -lisahF --group-directories-first | more'
+alias madiff='diff -ENwbur'
+alias mkdir='mkdir -p'
+alias p='ps -l'
+alias pa='ps -aux'
+alias pz='ps -aux|grep -v grep |grep'
+alias please='sudo $(fc -ln -1)'
+alias plz='please'
+alias q='exit'
+alias remove-empty-files='find . -size 0 -print0 | xargs -0 rm -- '
+alias remove-empty-directories='find . -type d -empty -delete '
+alias x='cd $HOME && startx'
+
+
+# --- OS specific ---
 if [ "$(uname)" = "OpenBSD" ]; then
     [ -x "$(command -v doas)" ] && alias sudo='doas'
     alias poweroff='sudo shudown -p now'
     bind -m ^L='clear'^J
 fi
 
-# Specific tools
+
+# --- Extend $PATH ---
+pathadd() {
+    [[ -d "$1" ]] && [[ ":$PATH:" != *":$1:"* ]] \
+        && PATH="${PATH:+"$PATH:"}$1"
+}
+
+source-if-exists() { [[ -f "$1" ]] && source "$1" ; }
+
+[ -d "${HOME}/.dotfiles/bin" ] && pathadd "${HOME}/.dotfiles/bin"
+[ -d "${HOME}/.cargo/bin" ]    && pathadd "${HOME}/.cargo/bin"
+[ -d "${HOME}/go/bin" ]        && pathadd "${HOME}/go/bin"
+
+
+# --- Various utility functions ---
+mkdircd() {
+    mkdir -p "$1" || return
+    cd "$1" || return
+}
+
+cdls() {
+    cd "$1" || return
+    ls -lisa "$1"
+}
+
+# Add a new cronjob formatted string ($1) to crontab
+add-cronjob() {
+    [ -n "$1" ] && crontab -l 2> /dev/null |
+            { cat; echo "$1"; } | sort | uniq | crontab -
+}
+
+# Extract various types of archives according to filename extension
+extract-archive() {
+    if [ -f "$1" ] ; then
+        case "$1" in
+            *.7z)        7z x "$1"      ;;
+            *.Z)         uncompress "$1";;
+            *.tar)       tar xfv "$1" ;;
+            *.tar.bz2)   tar xjfv "$1" ;;
+            *.tar.gz)    tar xzfv "$1" ;;
+            *.tbz2)      tar xjfv "$1" ;;
+            *.tgz)       tar xzfv "$1" ;;
+            *.bz2)       bunzip2 "$1" ;;
+            *.gz)        gunzip "$1" ;;
+            *.rar)       unrar x "$1" ;;
+            *.xz)        unxz "$1" ;;
+            *.zip)       unzip "$1" ;;
+            *)           echo "Could not match extension of $1" ;;
+        esac
+    fi
+}
+
+# Generate a password of length $1 (default 16)
+passwd-gen() {
+    tr -dc '[:alnum:]+,;/-=:&$(){}[]' < /dev/urandom \
+        | fold -w "${1:-16}" | head -n 1
+}
+
+passwd-gen-alphanum() {
+    tr -dc '[:alnum:]' < /dev/urandom \
+        | fold -w "${1:-16}" | head -n 1
+}
+
+# Decode b64 input from $1
+b64d() { echo -n "$1" | base64 -i -d ;}
+
+# Print timestamps
+ts-day() { date "+%Y-%m-%d" ; }
+ts-time() { date "+%Y-%m-%d_%H-%M-%S" ; }
+
+# Create output image $1 from input $1 and writes text $3 in red across it
+print-on-image() {
+    input="$1"
+    output="$2"
+    text="$3"
+    color="255,0,0,0.25" # red
+    convert -density 150 -fill "rgba(${color})" \
+            -gravity Center -pointsize 80 \
+            -draw "rotate -45 text 0,0 \"${text}\"" \
+            "${input}" "${output}"
+}
+
+# Switch Xorg theme
+xorg-switch-theme() {
+    theme="${HOME}/.config/xorg/X${1}_theme"
+    [ -f "${theme}" ] && xrdb -override -I"$(dirname ${theme})" "${theme}"
+}
+
+# Convert html to pdf with chromium's headless browser
+html-to-pdf() {
+    chromium --headless --print-to-pdf="$2" --print-to-pdf-no-header "$1"
+}
+
+# Get rid of non-ascii chars in a file ($1)
+remove-non-ascii() {
+    local tmp_dir="$(mktemp -d)"
+    cat "$1" | tr -d '\200-\377' > "${tmp_dir}/$1"
+    cp "${tmp_dir}/$1" "$1"
+    rm -rf "${tmp_dir}"
+}
+
+# Get rid of BOM in file ($1)
+my-remove-bom() {
+    sed -i '1s/^\xEF\xBB\xBF//' "$1"
+}
+
+# --- docker ---
+alias drun='docker run --rm '
+alias drunhere='drun -v `pwd`:/work -w /work '
+alias drunit='drun -it '
+alias drunithere='drunit -v `pwd`:/work -w /work '
+alias dshell='drunit --entrypoint=/bin/bash '
+alias dshellhere='drunithere --entrypoint=/bin/bash '
+
+if [ -x "$(command -v fzf)" ]; then
+
+    # fdc: fuzzy docker containers
+    # C-o / M-o:       docker attach and docker exec
+    # C-r / M-r:       docker remove and docker stop
+    # M-j / M-k:       docker start and docker kill
+    # M-i:             copy selection to clipboard
+    # M-n:             rename container
+    # M-p:             docker inspect container
+    # M-y:             copy ip address to clipboard
+    # M-a / M-d:       (de)select everything
+    # C-j / C-k, C-/:  navigate preview
+    # Enter:           print selection
+    fdc() {
+        RELOAD="reload:docker ps ${1:-} --format \"table {{.ID}}\t{{.Image}}\t{{.Names}}\t{{.Status}}\t{{.Command}}\t\" || :"
+        fzf --multi --ansi \
+            --reverse --border --height 80% \
+            --header-lines=1 \
+            --bind "start:$RELOAD" --bind "change:$RELOAD" \
+            --bind 'ctrl-o:become(docker start {1} && docker attach {1})' \
+            --bind 'alt-o:become(docker exec -it {1} sh -c "bash || sh")' \
+            --bind 'ctrl-r:execute-silent(for item in {+}; do echo $item | cut -d" " -f1 | xargs docker rm -f; done)' \
+            --bind 'alt-r:execute-silent(echo {+} | cut -d" " -f1 | xargs docker stop)' \
+            --bind 'alt-j:execute-silent(echo {+} | cut -d" " -f1 | xargs docker start)' \
+            --bind 'alt-k:execute-silent(echo {+} | cut -d" " -f1 | xargs docker kill)' \
+            --bind "alt-i:execute-silent(echo {+} | tr ' ' '\n' | xsel -i)" \
+            --bind 'alt-n:execute(read -p "Enter new name: " newname && docker rename {1} ${newname})' \
+            --bind 'alt-p:execute(echo {+} | cut -d" " -f1 | xargs docker inspect | jq -C | less -R)' \
+            --bind 'alt-y:become(docker inspect --format "{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}" {1} | tr -d "\n" | xsel -i ; xsel -o)' \
+            --bind 'alt-a:select-all,alt-d:deselect-all' \
+            --bind 'ctrl-j:preview-down,ctrl-k:preview-up,ctrl-/:toggle-preview' \
+            --bind 'enter:become(for item in {+}; do echo $item | cut -d" " -f1; done)+abort' \
+            --preview 'docker inspect --format "{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}" {1} && docker logs -f {1}' \
+            --preview-window 'down'
+    }
+
+    alias fdca='fdc -a '
+
+
+    # fdi: fuzzy docker images
+    # C-o / M-o:       docker run or shell into image
+    # C-r:             docker force remove image
+    # M-i:             copy selection to clipboard
+    # M-a / M-d:       (de)select everything
+    # C-j / C-k, C-/:  navigate preview
+    # Enter:           print selection
+    fdi() {
+        RELOAD='reload:docker image ls --format "table {{.ID}}\t{{.Repository}}\t{{.Tag}}\t{{.CreatedSince}}\t{{.Size}}" || :'
+        fzf --ansi \
+            --reverse --border --height 60% \
+            --header-lines=1 \
+            --bind "start:$RELOAD" --bind "change:$RELOAD" \
+            --bind 'enter:become(for item in {+}; do echo $item | cut -d" " -f1; done)+abort' \
+            --bind 'ctrl-o:become(docker run -it -v `pwd`:/work --rm {1})' \
+            --bind "alt-i:execute-silent(echo {+} | tr ' ' '\n' | xsel -i)" \
+            --bind 'ctrl-r:execute-silent(for item in {+}; do echo $item | cut -d" " -f1 | xargs docker rmi -f; done)' \
+            --bind 'alt-a:select-all,alt-d:deselect-all' \
+            --bind 'ctrl-j:preview-down,ctrl-k:preview-up,ctrl-/:toggle-preview' \
+            --preview 'docker image history {1}'
+    }
+
+
+    # Provide fzf completion on local docker images
+    _fzf_complete_docker_image() {
+        _fzf_complete --multi \
+                      --ansi --header-lines=1 --accept-nth 2 \
+                      --bind 'alt-a:select-all,alt-d:deselect-all' \
+                      --bind 'ctrl-j:preview-down,ctrl-k:preview-up,ctrl-/:toggle-preview' \
+                      --preview 'docker image history {1}' \
+                      -- "@" < <(
+            docker image ls --format \
+                   "table {{.ID}}\t{{.Repository}}\t{{.Tag}}\t{{.CreatedSince}}\t{{.Size}}"
+        )
+    }
+
+    complete -F _fzf_complete_docker_image -o default -o bashdefault drun
+    complete -F _fzf_complete_docker_image -o default -o bashdefault drunhere
+    complete -F _fzf_complete_docker_image -o default -o bashdefault drunit
+    complete -F _fzf_complete_docker_image -o default -o bashdefault drunithere
+    complete -F _fzf_complete_docker_image -o default -o bashdefault dshell
+    complete -F _fzf_complete_docker_image -o default -o bashdefault dshellhere
+
+fi
+
+
+# --- gf ---
+[[ -x "$(command -v gf)" ]] && complete -W "\$(gf -list)" gf
+
+
+# --- irssi ---
+if [ -x "$(command -v irssi)" ]; then
+    alias irssi-libera='irssi --config=<((cat ${HOME}/.irssi/config 2>/dev/null && cat ${HOME}/.my_private/irssi/libera 2>/dev/null))'
+    alias irssi-hackerzvoice='irssi --config=<((cat ${HOME}/.irssi/config 2>/dev/null && cat ${HOME}/.my_private/irssi/hackerzvoice 2>/dev/null))'
+fi
+
+
+# --- misc tools ---
 [ -x "$(command -v curl)" ]     && alias weather='curl -s wttr.in/?nFQ '
 [ -x "$(command -v less)" ]     && alias more='less '
 [ -x "$(command -v newsboat)" ] && alias newsboat='newsboat -u ${HOME}/.my_private/newsboat/urls '
@@ -75,15 +298,8 @@ fi
 [ -x "$(command -v tree)" ]     && alias tree='tree -F '
 [ -x "$(command -v urxvtc)" ]   && alias mm='urxvtc -cd "$PWD" & '
 
-# Tmux utility aliases
-if [ -x "$(command -v tmux)" ]; then
-    alias t='tmux'
-    alias ta='tmux attach -t'
-    alias tls='tmux ls'
-    alias tks='tmux kill-session -t'
-fi
 
-# Search through files with ripgrep
+# --- ripgrep ---
 if [ -x "$(command -v rg)" ]; then
     alias rgi='rg -i'
     alias rgia='rg -i -a '
@@ -93,7 +309,8 @@ if [ -x "$(command -v rg)" ]; then
     alias rgila='rg -i -l -a'
 fi
 
-# Ranger / Rifle
+
+# --- ranger / rifle ---
 if [ -x "$(command -v ranger)" ]; then
     ranger() {
         if [ -n "$RANGER_LEVEL" ]; then
@@ -107,15 +324,25 @@ if [ -x "$(command -v ranger)" ]; then
     alias r='ranger '
 fi
 
-# gf (https://github.com/tomnomnom/gf)
-if [ -x "$(command -v gf)" ]; then
-    complete -W "\$(gf -list)" gf
+
+# --- skw/tools ---
+source-if-exists "${HOME}/tools/skw-tools/aliases.sh"
+
+
+# --- tmux ---
+if [ -x "$(command -v tmux)" ]; then
+    alias t='tmux'
+    alias ta='tmux attach -t'
+    alias tls='tmux ls'
+    alias tks='tmux kill-session -t'
 fi
 
-# fzf (requires bat, rifle, fd and rg)
+
+# --- to sort ---
 if [ -x "$(command -v fzf)" ]; then
 
     eval "$(fzf --bash)"
+    export FZF_COMPLETION_TRIGGER=','
 
     # Select items from stdin with fzf. C-o will open files with emacs and Enter
     # with rifle. M-o will print selection to stdout, M-i will store it in the
@@ -173,9 +400,9 @@ if [ -x "$(command -v fzf)" ]; then
             --bind "ctrl-o:execute:$OPENER_EMACS" \
             --bind "ctrl-f:execute:$EDITOR {+f}" \
             --bind 'alt-o:become(for item in {+}; do echo $item; done)' \
-            --bind 'alt-a:select-all,alt-d:deselect-all,ctrl-/:toggle-preview' \
             --bind "alt-i:execute-silent(echo {+} | tr ' ' '\n' | xsel -i)" \
             --bind 'alt-h:execute-silent(for item in {+}; do echo $item | cut -d":" -f1; done | sort -u | xsel -i)' \
+            --bind 'alt-a:select-all,alt-d:deselect-all,ctrl-/:toggle-preview' \
             --bind 'ctrl-j:preview-down,ctrl-k:preview-up' \
             --delimiter : \
             --preview 'bat --style=header --color=always -H {2} {1}' \
@@ -195,7 +422,7 @@ if [ -x "$(command -v fzf)" ]; then
 
         cd ${1:-.}
         shift
-                fzf --ansi --multi \
+        fzf --ansi --multi \
             --reverse --height 80% --border \
             --bind "start:$RELOAD" --bind "change:$RELOAD" \
             --bind "enter:execute:$OPENER_RIFLE" \
@@ -212,138 +439,28 @@ if [ -x "$(command -v fzf)" ]; then
 
         cd - 1>/dev/null
     }
+
+    # Install packages using yay
+    fy() {
+        yay -Slq | fzf -q "$1" -m --preview 'yay -Si {1}'| xargs -ro yay -S
+    }
+
+    # Remove installed packages
+    fyre() {
+        yay -Qq | fzf -q "$1" -m --preview 'yay -Qi {1}' | xargs -ro yay -Rns
+    }
+
+
+    # M-d => cd + fzf
+    bind -r "\ec"
+    bind -m emacs-standard '"\ed": " \C-b\C-k \C-u`__fzf_cd__`\e\C-e\C-\e(\C-m\C-y\C-h\e \C-y\ey\C-x\C-x\C-d\C-y\ey\C-_"'
+    bind -m vi-command '"\ed": "\C-z\ec\C-z"'
+    bind -m vi-insert '"\ed": "\C-z\ec\C-z"'
+
 fi
 
-# Start irssi with personal config and private settings
-if [ -x "$(command -v irssi)" ]; then
-    alias irssi-libera='irssi --config=<((cat ${HOME}/.irssi/config 2>/dev/null && cat ${HOME}/.my_private/irssi/libera 2>/dev/null))'
-    alias irssi-hackerzvoice='irssi --config=<((cat ${HOME}/.irssi/config 2>/dev/null && cat ${HOME}/.my_private/irssi/hackerzvoice 2>/dev/null))'
-fi
 
-# Reset setxkbmap to fr+bepo
-alias bepomap='setxkbmap fr,fr oss,bepo grp:alt_caps_toggle,grp_led:scroll'
-
-# Aliases for standard utils
-alias dm='dmesg | tail'
-alias h='fc -l'
-alias hh='fc -l -1 -300|grep'
-alias hhh='fc -l -1 -${HISTSIZE}|grep'
-alias hi='ping -c 3 example.com'
-alias j='jobs'
-alias ls='ls -F --color=auto'
-alias l='ls -F --color=auto'
-alias la='ls -aF --color=auto'
-alias ll='ls -lisahF --group-directories-first'
-alias llm='ls -lisahF --group-directories-first | more'
-alias madiff='diff -ENwbur'
-alias mkdir='mkdir -p'
-alias p='ps -l'
-alias pa='ps -aux'
-alias pz='ps -aux|grep -v grep |grep'
-alias please='sudo $(fc -ln -1)'
-alias plz='please'
-alias q='exit'
-alias reset-dhcpcd='sudo dhcpcd && sleep 3 && sudo resolvconf -u '
-alias remove-empty-files='find . -size 0 -print0 | xargs -0 rm -- '
-alias remove-empty-directories='find . -type d -empty -delete '
-alias x='cd $HOME && startx'
-
-# Utility functions
-mkdircd() {
-    mkdir -p "$1"
-    cd "$1" || return
-}
-
-cdls() {
-    cd "$1" || return
-    ls -lisa "$1"
-}
-
-# Add a new cronjob formatted string to crontab
-add-cronjob() {
-    [ -n "$1" ] && crontab -l 2> /dev/null |
-            { cat; echo "$1"; } | sort | uniq | crontab -
-}
-
-# Extract various types of archives according to filename extension
-extract-archive() {
-    if [ -f "$1" ] ; then
-        case "$1" in
-            *.7z)        7z x "$1"      ;;
-            *.Z)         uncompress "$1";;
-            *.tar)       tar xfv "$1" ;;
-            *.tar.bz2)   tar xjfv "$1" ;;
-            *.tar.gz)    tar xzfv "$1" ;;
-            *.tbz2)      tar xjfv "$1" ;;
-            *.tgz)       tar xzfv "$1" ;;
-            *.bz2)       bunzip2 "$1" ;;
-            *.gz)        gunzip "$1" ;;
-            *.rar)       unrar x "$1" ;;
-            *.xz)        unxz "$1" ;;
-            *.zip)       unzip "$1" ;;
-            *)           echo "Could not match extension of $1" ;;
-        esac
-    fi
-}
-
-# Generate an alphanumerical password of length $1 with some special chars
-passwd-gen() {
-    tr -dc '[:alnum:]+,;/-=:&$(){}[]' < /dev/urandom \
-        | fold -w "${1:-16}" | head -n 1
-}
-
-# Decode b64 input from $1
-b64d() { echo -n "$1" | base64 -i -d ;}
-
-# Print timestamps
-ts-day() { date "+%Y-%m-%d" ; }
-ts-time() { date "+%Y-%m-%d_%H-%M-%S" ; }
-
-# Simply source existing file
-source-if-exists() {
-    [ -f "$1" ] && . "$1"
-}
-
-# create output image $1 from input $1 and writes text $3 in red across it
-print-on-image() {
-    input="$1"
-    output="$2"
-    text="$3"
-    color="255,0,0,0.25" # red
-    convert -density 150 -fill "rgba(${color})" \
-            -gravity Center -pointsize 80 \
-            -draw "rotate -45 text 0,0 \"${text}\"" \
-            "${input}" "${output}"
-}
-
-# Switch Xorg theme
-xorg-switch-theme() {
-    theme="${HOME}/.config/xorg/X${1}_theme"
-    [ -f "${theme}" ] && xrdb -override -I"$(dirname ${theme})" "${theme}"
-}
-
-# Convert html to pdf with chromium's headless browser
-html-to-pdf() {
-    chromium --headless --print-to-pdf="$2" --print-to-pdf-no-header "$1"
-}
-
-# Get rid of non-ascii chars in a file ($1)
-remove-non-ascii() {
-    local tmp_dir="$(mktemp -d)"
-    cat "$1" | tr -d '\200-\377' > "${tmp_dir}/$1"
-    cp "${tmp_dir}/$1" "$1"
-    rm -rf "${tmp_dir}"
-}
-
-# Get rid of BOM in file ($1)
-remove-bom() {
-    sed -i '1s/^\xEF\xBB\xBF//' "$1"
-}
-
-# My docker stuff
-[ -f "${HOME}/tools/dockers/aliases.sh" ] && source "${HOME}/tools/dockers/aliases.sh"
-
-# Finally export all the thingz! (just in case)
+# --- Export all the thingz! (just in case) ---
 export PS1
 export PATH HOME TERM
 export LANG LC_ALL
