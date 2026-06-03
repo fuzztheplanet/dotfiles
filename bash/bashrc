@@ -326,7 +326,7 @@ fi
 
 
 # --- skw/tools ---
-source-if-exists "${HOME}/tools/skw-tools/aliases.sh"
+source-if-exists "${HOME}/tools/skw/aliases.sh"
 
 
 # --- tmux ---
