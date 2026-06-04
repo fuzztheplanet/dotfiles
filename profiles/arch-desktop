@@ -128,7 +128,7 @@ deploy_gnupg() {
 
 ### i3wm
 _register_module "i3"
-i3wm_pkgs="i3-wm i3status i3lock dmenu"
+i3wm_pkgs="i3-wm i3status i3lock dmenu imagemagick"
 
 install_i3() {
 
