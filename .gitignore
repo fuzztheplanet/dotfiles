@@ -47,6 +47,7 @@
 !newsboat/config
 
 !profiles/
+!profiles/arch-desktop
 !profiles/arch-laptop
 
 !ranger/
@@ -54,7 +55,6 @@
 !ranger/rc.conf
 !ranger/rifle.conf
 !ranger/scope.sh
-
 
 !tmux/
 !tmux/tmux.conf
@@ -67,6 +67,8 @@
 !xorg/wallpapers/
 !xorg/wallpapers/**
 !xorg/xinitrc
-!xorg/Xresources
 !xorg/Xlight_theme
 !xorg/Xdark_theme
+!xorg/Xresources
+!xorg/Xresources-desktop
+!xorg/Xresources-laptop

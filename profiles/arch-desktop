@@ -290,7 +290,7 @@ deploy_xorg() {
         ln -sf "${SRC_DIR}/xorg/wallpapers/" "${DEST_DIR}/images/wallpapers"
 
         # Laptop specific
-        ln -sf "${SRC_DIR}/xorg/Xresources-laptop" "${DEST_DIR}/.config/xorg/Xresources-specific"
+        ln -sf "${SRC_DIR}/xorg/Xresources-desktop" "${DEST_DIR}/.config/xorg/Xresources-specific"
 
     elif [ "$1" = "remove" ]; then
 

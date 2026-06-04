@@ -15,18 +15,18 @@ files might not work out of the box or be well-documented. You are warned!
 * Usage
 
 There is a =manage.sh= script which will symlink the /dotfiles/ according to the
-directives from the =profiles/profile-*= via the /deploy/ command. The /install/
-command will install packages and perform any required system-wide setup
-actions. The /remove/ command will delete the deployed files and /uninstall/
-will get rid of the packages installed by the /dotfiles/.
+directives from the =profiles/*= profiles via the /deploy/ command. The
+/install/ command will install packages and perform any required system-wide
+setup actions. The /remove/ command will delete the deployed files and
+/uninstall/ will get rid of the packages installed by the /dotfiles/.
 
 #+begin_src shell
 $ git clone https://github.com/skw-dev/dotfiles ~/.dotfiles
 $ cd ~/.dotfiles
 $ ./manage.sh help
-$ ./manage.sh list profiles/arch-laptop
-$ ./manage.sh install profiles/arch-laptop all # root privileges required
-$ ./manage.sh deploy profiles/arch-laptop all
+$ ./manage.sh list profiles/arch-workstation
+$ ./manage.sh install profiles/arch-workstation xorg # root privileges required
+$ ./manage.sh deploy profiles/arch-workstation all
 #+end_src
 
 * Content
