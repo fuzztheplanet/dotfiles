@@ -10,24 +10,18 @@ _register_module "bash"
 bash_pkgs="bash bash-completion tree unzip curl ripgrep fd fzf bat"
 
 install_bash() {
-
     if [ "$1" = "install" ]; then
         _add_to_pkgs ${bash_pkgs}
-
     elif [ "$1" = "uninstall" ]; then
         _add_to_pkgs ${bash_pkgs}
     fi
 }
 
 deploy_bash() {
-
     if [ "$1" = "deploy" ]; then
-
         ln -sf "${SRC_DIR}/bash/bashrc" "${DEST_DIR}/.bashrc"
         ln -sf "${SRC_DIR}/bash/profile" "${DEST_DIR}/.bash_profile"
-
     elif [ "$1" = "remove" ]; then
-
         _rm "${DEST_DIR}/.bashrc"
         _rm "${DEST_DIR}/.bash_profile"
     fi
@@ -38,7 +32,6 @@ deploy_bash() {
 _register_module "bin"
 
 deploy_bin() {
-
     if [ "$1" = "deploy" ]; then
         chmod u+x ${SRC_DIR}/bin/*
     elif [ "$1" = "remove" ]; then
@@ -52,11 +45,9 @@ _register_module "emacs"
 emacs_pkgs="emacs-nox hunspell-fr hunspell-de hunspell-en_us hunspell-en_gb words"
 
 install_emacs() {
-
     if [ "$1" = "install" ]; then
         _add_to_pkgs ${emacs_pkgs}
         _log_msg "[emacs] You may want to install your Emacs flavor manually"
-
     elif [ "$1" = "uninstall" ]; then
         _add_to_pkgs ${emacs_pkgs}
         _log_msg "[emacs] You may want to uninstall your Emacs flavor manually"
@@ -64,10 +55,8 @@ install_emacs() {
 }
 
 deploy_emacs() {
-
     if [ "$1" = "deploy" ]; then
         ln -sf "${SRC_DIR}/emacs" "${DEST_DIR}/.emacs.d"
-
     elif [ "$1" = "remove" ]; then
         _rm "${DEST_DIR}/.emacs.d"
     fi
@@ -79,21 +68,17 @@ _register_module "git"
 git_pkgs="git"
 
 install_git() {
-
     if [ "$1" = "install" ]; then
         _add_to_pkgs ${git_pkgs}
-
     elif [ "$1" = "uninstall" ]; then
         _add_to_pkgs ${git_pkgs}
     fi
 }
 
 deploy_git() {
-
     if [ "$1" = "deploy" ]; then
         mkdir -p "${DEST_DIR}/.config/git"
         ln -sf "${SRC_DIR}/git/config" "${DEST_DIR}/.config/git/config"
-
     elif [ "$1" = "remove" ]; then
         _rm "${DEST_DIR}/.config/git"
     fi
@@ -105,21 +90,17 @@ _register_module "gnupg"
 gnupg_pkgs="gnupg"
 
 install_gnupg() {
-
     if [ "$1" = "install" ]; then
         _add_to_pkgs ${gnupg_pkgs}
-
     elif [ "$1" = "uninstall" ]; then
         _add_to_pkgs ${gnupg_pkgs}
     fi
 }
 
 deploy_gnupg() {
-
     if [ "$1" = "deploy" ]; then
         mkdir -p "${DEST_DIR}/.gnupg"
         ln -sf "${SRC_DIR}/gnupg/gpg.conf" "${DEST_DIR}/.gnupg/gpg.conf"
-
     elif [ "$1" = "remove" ]; then
         _rm "${DEST_DIR}/.gnupg/gpg.conf"
     fi
@@ -131,22 +112,18 @@ _register_module "i3"
 i3wm_pkgs="i3-wm i3status i3lock dmenu imagemagick"
 
 install_i3() {
-
     if [ "$1" = "install" ]; then
         _add_to_pkgs ${i3wm_pkgs}
-
     elif [ "$1" = "uninstall" ]; then
         _add_to_pkgs ${i3wm_pkgs}
     fi
 }
 
 deploy_i3() {
-
     if [ "$1" = "deploy" ]; then
         mkdir -p "${DEST_DIR}/.config/i3/config"
         ln -sf "${SRC_DIR}/i3/i3.conf" "${DEST_DIR}/.config/i3/config/i3.conf"
         ln -sf "${SRC_DIR}/i3/statusbar" "${DEST_DIR}/.config/i3/statusbar"
-
     elif [ "$1" = "remove" ]; then
         _rm "${DEST_DIR}/.config/i3"
     fi
@@ -158,22 +135,18 @@ _register_module "irssi"
 irssi_pkgs="irssi"
 
 install_irssi() {
-
     if [ "$1" = "install" ]; then
         _add_to_pkgs ${irssi_pkgs}
-
     elif [ "$1" = "uninstall" ]; then
         _add_to_pkgs ${irssi_pkgs}
     fi
 }
 
 deploy_irssi() {
-
     if [ "$1" = "deploy" ]; then
         mkdir -p "${DEST_DIR}/.irssi"
         ln -sf "${SRC_DIR}/irssi/config" "${DEST_DIR}/.irssi/config"
         ln -sf "${SRC_DIR}/irssi/default.theme" "${DEST_DIR}/.irssi/default.theme"
-
     elif [ "$1" = "remove" ]; then
         _rm "${DEST_DIR}/.irssi"
     fi
@@ -185,21 +158,17 @@ _register_module "newsboat"
 newsboat_pkgs="newsboat"
 
 install_newsboat() {
-
     if [ "$1" = "install" ]; then
         _add_to_pkgs ${newsboat_pkgs}
-
     elif [ "$1" = "uninstall" ]; then
         _add_to_pkgs ${newsboat_pkgs}
     fi
 }
 
 deploy_newsboat() {
-
     if [ "$1" = "deploy" ]; then
         mkdir -p "${DEST_DIR}/.config/newsboat"
         ln -sf "${SRC_DIR}/newsboat/config" "${DEST_DIR}/.config/newsboat/config"
-
     elif [ "$1" = "remove" ]; then
         _rm "${DEST_DIR}/.config/newsboat"
     fi
@@ -211,26 +180,43 @@ _register_module "ranger"
 ranger_pkgs="ranger"
 
 install_ranger() {
-
     if [ "$1" = "install" ]; then
         _add_to_pkgs ${ranger_pkgs}
-
     elif [ "$1" = "uninstall" ]; then
         _add_to_pkgs ${ranger_pkgs}
     fi
 }
 
 deploy_ranger() {
-
     if [ "$1" = "deploy" ]; then
         mkdir -p "${DEST_DIR}/.config/ranger"
         ln -sf "${SRC_DIR}/ranger/rc.conf" "${DEST_DIR}/.config/ranger/rc.conf"
         ln -sf "${SRC_DIR}/ranger/rifle.conf" "${DEST_DIR}/.config/ranger/rifle.conf"
         ln -sf "${SRC_DIR}/ranger/scope.sh" "${DEST_DIR}/.config/ranger/scope.sh"
         ln -sf "${SRC_DIR}/ranger/commands.py" "${DEST_DIR}/.config/ranger/commands.py"
-
     elif [ "$1" = "remove" ]; then
         _rm "${DEST_DIR}/.config/ranger"
+    fi
+}
+
+
+### SSHd
+_register_module "sshd"
+sshd_pkgs="openssh"
+
+install_sshd() {
+    if [ "$1" = "install" ]; then
+        _add_to_pkgs ${sshd_pkgs}
+    elif [ "$1" = "uninstall" ]; then
+        _add_to_pkgs ${sshd_pkgs}
+    fi
+}
+
+deploy_sshd() {
+    if [ "$1" = "deploy" ]; then
+        sudo cp "${SRC_DIR}/sshd/force_publickey_auth.conf" "/etc/ssh/sshd_config.d/20-force_publickey_auth.conf"
+    elif [ "$1" = "remove" ]; then
+        sudo rm "/etc/ssh/sshd_config.d/20-force_publickey_auth.conf"
     fi
 }
 
@@ -240,21 +226,17 @@ _register_module "tmux"
 tmux_pkgs="tmux"
 
 install_tmux() {
-
     if [ "$1" = "install" ]; then
         _add_to_pkgs ${tmux_pkgs}
-
     elif [ "$1" = "uninstall" ]; then
         _add_to_pkgs ${tmux_pkgs}
     fi
 }
 
 deploy_tmux() {
-
     if [ "$1" = "deploy" ]; then
         mkdir -p "${DEST_DIR}/.config/tmux"
         ln -sf "${SRC_DIR}/tmux/tmux.conf" "${DEST_DIR}/.config/tmux/tmux.conf"
-
     elif [ "$1" = "remove" ]; then
         _rm "${DEST_DIR}/.config/tmux"
     fi
@@ -266,34 +248,26 @@ _register_module "xorg"
 xorg_pkgs="xorg xorg-xinit xorg-xrdb rxvt-unicode urxvt-perls urxvt-resize-font-git xclip feh unclutter scrot htop ttf-inconsolata xf86-video-intel ttf-dejavu alsa-utils sxiv xorg-xbacklight autocutsel xautolock"
 
 install_xorg() {
-
     if [ "$1" = "install" ]; then
         _add_to_pkgs ${xorg_pkgs}
-
     elif [ "$1" = "uninstall" ]; then
         _add_to_pkgs ${xorg_pkgs}
     fi
 }
 
 deploy_xorg() {
-
     if [ "$1" = "deploy" ]; then
-
         mkdir -p "${DEST_DIR}/.config/xorg"
         mkdir -p "${DEST_DIR}/images/shots"
-
         ln -sf "${SRC_DIR}/xorg/xinitrc" "${DEST_DIR}/.xinitrc"
         ln -sf "${SRC_DIR}/xorg/Xresources" "${DEST_DIR}/.config/xorg/Xresources"
         ln -sf "${SRC_DIR}/xorg/Xlight_theme" "${DEST_DIR}/.config/xorg/Xlight_theme"
         ln -sf "${SRC_DIR}/xorg/Xdark_theme" "${DEST_DIR}/.config/xorg/Xdark_theme"
         ln -sf "${SRC_DIR}/xorg/typematrix.xkb" "${DEST_DIR}/.config/xorg/typematrix.xkb"
         ln -sf "${SRC_DIR}/xorg/wallpapers/" "${DEST_DIR}/images/wallpapers"
-
         # Laptop specific
         ln -sf "${SRC_DIR}/xorg/Xresources-desktop" "${DEST_DIR}/.config/xorg/Xresources-specific"
-
     elif [ "$1" = "remove" ]; then
-
         _rm "${DEST_DIR}/.xinitrc"
         _rm "${DEST_DIR}/.config/xorg"
         _rm "${DEST_DIR}/images/wallpapers"

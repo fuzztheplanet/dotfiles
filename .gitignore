@@ -6,21 +6,21 @@
 !manage.sh
 
 !bash/
-!bash/profile
 !bash/bashrc
+!bash/profile
 
 !bin/
 !bin/attach-tmux.sh
 !bin/gen-cool-ssh-keys.sh
 !bin/grab-openbsd.sh
 !bin/kill-tmux.sh
-!bin/xorg-locker.sh
 !bin/preview-file.sh
 !bin/spawn-tmux.sh
 !bin/start-vm.sh
 !bin/tmux-blog.sh
 !bin/tmux-monitor.sh
 !bin/watch-directory.sh
+!bin/xorg-locker.sh
 
 !emacs/
 !emacs/init.el
@@ -56,6 +56,9 @@
 !ranger/rifle.conf
 !ranger/scope.sh
 
+!sshd/
+!sshd/force_publickey_auth.conf
+
 !tmux/
 !tmux/tmux.conf
 
@@ -67,8 +70,8 @@
 !xorg/wallpapers/
 !xorg/wallpapers/**
 !xorg/xinitrc
-!xorg/Xlight_theme
 !xorg/Xdark_theme
+!xorg/Xlight_theme
 !xorg/Xresources
 !xorg/Xresources-desktop
 !xorg/Xresources-laptop

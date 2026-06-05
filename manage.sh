@@ -313,7 +313,7 @@ case "$1" in
         exit 0
         ;;
 
-    "install" | "uninstall" | "deploy" | "remove") # ./manage.sh install/uninstall <profile> <modules..>
+    "install" | "uninstall" | "deploy" | "remove") # ./manage.sh install/uninstall/deploy/remove <profile> <modules..>
 
         MODE_TMP="$1"
         _load_profile "$2"

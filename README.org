@@ -10,7 +10,7 @@ I stole a lot of ideas for this setup from some great other people, feel free to
 do the same here :)
 
 *Warning:* this repository is a constant work-in-progress. Some configuration
-files might not work out of the box or be well-documented. You are warned!
+files might not work out-of-the-box and/or are poorly-documented. You be warned!
 
 * Usage
 
@@ -25,7 +25,7 @@ $ git clone https://github.com/skw-dev/dotfiles ~/.dotfiles
 $ cd ~/.dotfiles
 $ ./manage.sh help
 $ ./manage.sh list profiles/arch-workstation
-$ ./manage.sh install profiles/arch-workstation xorg # root privileges required
+$ ./manage.sh install profiles/arch-workstation xorg
 $ ./manage.sh deploy profiles/arch-workstation all
 #+end_src
 
@@ -72,6 +72,10 @@ My [[https://newsboat.org/][newsboat]] configuration for reading RSS feeds.
 
 Pretty standard configuration for the [[https://github.com/ranger/ranger][ranger]] file manager with a few commands
 for [[https://github.com/junegunn/fzf][fzf]] integration.
+
+*** sshd
+
+Force SSH public key authentication.
 
 *** tmux
 
