@@ -14,6 +14,7 @@ URxvt.selectToClipboard:   true
 URXvt.disallowedWindowOps: 20,21,SetXprop
 
 !! Cosmetics
+URxvt*font:           xft:DejaVu Sans Mono:size=12:antialias=true
 URxvt*depth:          32
 URxvt*borderless:     1
 URxvt*transparent:    false
@@ -50,4 +51,3 @@ Xft.hinting:   true
 Xft.hintstyle: hintslight
 
 #include "Xlight_theme"
-#include "Xresources-specific"
