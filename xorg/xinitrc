@@ -8,9 +8,10 @@ X_CONF_DIR="${CONF_DIR}/xorg"
 xset fp+ /usr/share/fonts/TTF
 xset fp rehash
 [ -f "${X_CONF_DIR}/Xresources" ] && xrdb -I"${X_CONF_DIR}" "${X_CONF_DIR}/Xresources"
-[ -f "${X_CONF_DIR}/typematrix.xkb" ] && xkbcomp "${X_CONF_DIR}/typematrix.xkb" "$DISPLAY"
 xsetroot -cursor_name left_ptr
+# setxkbmap replaces the whole keymap, so it must run *before* xkbcomp
 setxkbmap fr,fr oss,bepo grp:alt_caps_toggle,grp_led:scroll
+[ -f "${X_CONF_DIR}/typematrix.xkb" ] && xkbcomp "${X_CONF_DIR}/typematrix.xkb" "$DISPLAY"
 
 # Start background programs first
 [ -n "$(command -v urxvtd)" ]       && urxvtd -q -o -f &

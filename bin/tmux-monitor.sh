@@ -30,6 +30,8 @@ else
     tmux new-window -n "acpi" "${ACPI}"
 
     # Back to window 1) and first pane
-    tmux select-window -t ${SESS}:1
+    tmux select-window -t "${SESS}:1"
     tmux select-pane -t 1
+
+    tmux attach -t "${SESS}"
 fi

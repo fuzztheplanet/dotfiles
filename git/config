@@ -16,7 +16,7 @@
     gpgSign = true
 
 [push]
-    default = matching
+    default = simple
 
 [alias]
     a   = add --all
