@@ -382,22 +382,24 @@ if [ -x "$(command -v fzf)" ]; then
     # the matches. M-o prints them to stdout, M-i copies them to the clipboard,
     # M-h copies only the filenames. C-j and C-k scroll the preview windows. M-d
     # and M-a (de)select everything and C-/ toggles the preview window.
-    fr() {
-        RELOAD='reload:rg --line-number --color=always --smart-case {q} || :'
-        OPENER_EMACS='if [[ $FZF_SELECT_COUNT -eq 0 ]]; then
+    # Shared implementation for 'fr' and 'fra'. $1: extra rg flags, $2: directory
+    _fr_impl() {
+        local rg_flags="$1"; shift
+        local reload opener_emacs opener_rifle
+        reload="reload:rg ${rg_flags} --line-number --color=always --smart-case {q} || :"
+        opener_emacs='if [[ $FZF_SELECT_COUNT -eq 0 ]]; then
             $EDITOR +{2} {1}
           else
             for item in {+}; do echo $item | cut -d ":" -f1; done | xargs $EDITOR
           fi'
-        OPENER_RIFLE='for item in {+}; do echo $item | cut -d ":" -f1; done | xargs rifle'
+        opener_rifle='for item in {+}; do echo $item | cut -d ":" -f1; done | xargs rifle'
 
-        cd ${1:-.}
-        shift
+        cd "${1:-.}" || return
         fzf --ansi --multi \
             --reverse --height 80% --border \
-            --bind "start:$RELOAD" --bind "change:$RELOAD" \
-            --bind "enter:execute:$OPENER_RIFLE" \
-            --bind "ctrl-o:execute:$OPENER_EMACS" \
+            --bind "start:$reload" --bind "change:$reload" \
+            --bind "enter:execute:$opener_rifle" \
+            --bind "ctrl-o:execute:$opener_emacs" \
             --bind "ctrl-f:execute:$EDITOR {+f}" \
             --bind 'alt-o:become(for item in {+}; do echo $item; done)' \
             --bind "alt-i:execute-silent(echo {+} | tr ' ' '\n' | xsel -i)" \
@@ -407,38 +409,13 @@ if [ -x "$(command -v fzf)" ]; then
             --delimiter : \
             --preview 'bat --style=header --color=always -H {2} {1}' \
             --preview-window 'down'
-
-        cd - 1>/dev/null
+        cd - 1>/dev/null || return
     }
+
+    fr()  { _fr_impl ""    "$@"; }
 
     # Same as 'fr' but with hidden / ignored files
-    fra() {
-        RELOAD='reload:rg -uu --line-number --color=always --smart-case {q} || :'
-        OPENER='if [[ $FZF_SELECT_COUNT -eq 0 ]]; then
-            emacsclient -t +{2} {1}
-          else
-            emacsclient -t {+f}
-          fi'
-
-        cd ${1:-.}
-        shift
-        fzf --ansi --multi \
-            --reverse --height 80% --border \
-            --bind "start:$RELOAD" --bind "change:$RELOAD" \
-            --bind "enter:execute:$OPENER_RIFLE" \
-            --bind "ctrl-o:execute:$OPENER_EMACS" \
-            --bind "ctrl-f:execute:$EDITOR {+f}" \
-            --bind 'alt-o:become(for item in {+}; do echo $item; done)' \
-            --bind 'alt-a:select-all,alt-d:deselect-all,ctrl-/:toggle-preview' \
-            --bind "alt-i:execute-silent(echo {+} | tr ' ' '\n' | xsel -i)" \
-            --bind 'alt-h:execute-silent(for item in {+}; do echo $item | cut -d":" -f1; done | sort -u | xsel -i)' \
-            --bind 'ctrl-j:preview-down,ctrl-k:preview-up' \
-            --delimiter : \
-            --preview 'bat --style=header --color=always -H {2} {1}' \
-            --preview-window 'down'
-
-        cd - 1>/dev/null
-    }
+    fra() { _fr_impl "-uu" "$@"; }
 
     # Install packages using yay
     fy() {

@@ -1,13 +1,12 @@
 #!/usr/bin/env bash
 
-
-# USAGE: attach_tmux.sh
+# USAGE: attach-tmux.sh
 # This script uses dmenu
 
+set -u
 
-all_sessions=$(tmux ls | cut -d':' -f1 | dmenu -p "attach tmux> ")
-
-[[ "$?" -ne 0 ]] && { echo "User aborted!"; exit 0; }
+selected_session=$(tmux ls -F '#S' | dmenu -p "attach tmux> ") || { echo "User aborted!"; exit 0; }
+[[ -n "${selected_session}" ]] || { echo "No session selected!"; exit 0; }
 
 echo "Got selected session: ${selected_session}"
 

@@ -150,7 +150,7 @@ case $EFFECT in
 esac
 
 if [[ "$WRITE_ONLY" = false ]]; then
-    i3lock -n -i "$TMPBG" &
+    exec i3lock -n -i "$TMPBG"
 else
     echo "Write-only mode enabled. Skipping i3lock."
 fi

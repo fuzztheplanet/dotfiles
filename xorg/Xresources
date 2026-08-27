@@ -11,7 +11,7 @@ URxvt*scrollBar:           false
 URxvt*scrollstyle:         plain
 URxvt*secondaryScroll:     true
 URxvt.selectToClipboard:   true
-URXvt.disallowedWindowOps: 20,21,SetXprop
+URxvt.disallowedWindowOps: 20,21,SetXprop
 
 !! Cosmetics
 URxvt*font:           xft:DejaVu Sans Mono:size=12:antialias=true

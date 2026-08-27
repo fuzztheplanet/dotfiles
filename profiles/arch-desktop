@@ -19,8 +19,8 @@ install_bash() {
 
 deploy_bash() {
     if [ "$1" = "deploy" ]; then
-        ln -sf "${SRC_DIR}/bash/bashrc" "${DEST_DIR}/.bashrc"
-        ln -sf "${SRC_DIR}/bash/profile" "${DEST_DIR}/.bash_profile"
+        ln -sfn "${SRC_DIR}/bash/bashrc" "${DEST_DIR}/.bashrc"
+        ln -sfn "${SRC_DIR}/bash/profile" "${DEST_DIR}/.bash_profile"
     elif [ "$1" = "remove" ]; then
         _rm "${DEST_DIR}/.bashrc"
         _rm "${DEST_DIR}/.bash_profile"
@@ -56,7 +56,7 @@ install_emacs() {
 
 deploy_emacs() {
     if [ "$1" = "deploy" ]; then
-        ln -sf "${SRC_DIR}/emacs" "${DEST_DIR}/.emacs.d"
+        ln -sfn "${SRC_DIR}/emacs" "${DEST_DIR}/.emacs.d"
     elif [ "$1" = "remove" ]; then
         _rm "${DEST_DIR}/.emacs.d"
     fi
@@ -78,7 +78,7 @@ install_git() {
 deploy_git() {
     if [ "$1" = "deploy" ]; then
         mkdir -p "${DEST_DIR}/.config/git"
-        ln -sf "${SRC_DIR}/git/config" "${DEST_DIR}/.config/git/config"
+        ln -sfn "${SRC_DIR}/git/config" "${DEST_DIR}/.config/git/config"
     elif [ "$1" = "remove" ]; then
         _rm "${DEST_DIR}/.config/git"
     fi
@@ -100,7 +100,7 @@ install_gnupg() {
 deploy_gnupg() {
     if [ "$1" = "deploy" ]; then
         mkdir -p "${DEST_DIR}/.gnupg"
-        ln -sf "${SRC_DIR}/gnupg/gpg.conf" "${DEST_DIR}/.gnupg/gpg.conf"
+        ln -sfn "${SRC_DIR}/gnupg/gpg.conf" "${DEST_DIR}/.gnupg/gpg.conf"
     elif [ "$1" = "remove" ]; then
         _rm "${DEST_DIR}/.gnupg/gpg.conf"
     fi
@@ -122,8 +122,8 @@ install_i3() {
 deploy_i3() {
     if [ "$1" = "deploy" ]; then
         mkdir -p "${DEST_DIR}/.config/i3/config"
-        ln -sf "${SRC_DIR}/i3/i3.conf" "${DEST_DIR}/.config/i3/config/i3.conf"
-        ln -sf "${SRC_DIR}/i3/statusbar" "${DEST_DIR}/.config/i3/statusbar"
+        ln -sfn "${SRC_DIR}/i3/i3.conf" "${DEST_DIR}/.config/i3/config/i3.conf"
+        ln -sfn "${SRC_DIR}/i3/statusbar" "${DEST_DIR}/.config/i3/statusbar"
     elif [ "$1" = "remove" ]; then
         _rm "${DEST_DIR}/.config/i3"
     fi
@@ -145,8 +145,8 @@ install_irssi() {
 deploy_irssi() {
     if [ "$1" = "deploy" ]; then
         mkdir -p "${DEST_DIR}/.irssi"
-        ln -sf "${SRC_DIR}/irssi/config" "${DEST_DIR}/.irssi/config"
-        ln -sf "${SRC_DIR}/irssi/default.theme" "${DEST_DIR}/.irssi/default.theme"
+        ln -sfn "${SRC_DIR}/irssi/config" "${DEST_DIR}/.irssi/config"
+        ln -sfn "${SRC_DIR}/irssi/default.theme" "${DEST_DIR}/.irssi/default.theme"
     elif [ "$1" = "remove" ]; then
         _rm "${DEST_DIR}/.irssi"
     fi
@@ -168,7 +168,7 @@ install_newsboat() {
 deploy_newsboat() {
     if [ "$1" = "deploy" ]; then
         mkdir -p "${DEST_DIR}/.config/newsboat"
-        ln -sf "${SRC_DIR}/newsboat/config" "${DEST_DIR}/.config/newsboat/config"
+        ln -sfn "${SRC_DIR}/newsboat/config" "${DEST_DIR}/.config/newsboat/config"
     elif [ "$1" = "remove" ]; then
         _rm "${DEST_DIR}/.config/newsboat"
     fi
@@ -190,10 +190,10 @@ install_ranger() {
 deploy_ranger() {
     if [ "$1" = "deploy" ]; then
         mkdir -p "${DEST_DIR}/.config/ranger"
-        ln -sf "${SRC_DIR}/ranger/rc.conf" "${DEST_DIR}/.config/ranger/rc.conf"
-        ln -sf "${SRC_DIR}/ranger/rifle.conf" "${DEST_DIR}/.config/ranger/rifle.conf"
-        ln -sf "${SRC_DIR}/ranger/scope.sh" "${DEST_DIR}/.config/ranger/scope.sh"
-        ln -sf "${SRC_DIR}/ranger/commands.py" "${DEST_DIR}/.config/ranger/commands.py"
+        ln -sfn "${SRC_DIR}/ranger/rc.conf" "${DEST_DIR}/.config/ranger/rc.conf"
+        ln -sfn "${SRC_DIR}/ranger/rifle.conf" "${DEST_DIR}/.config/ranger/rifle.conf"
+        ln -sfn "${SRC_DIR}/ranger/scope.sh" "${DEST_DIR}/.config/ranger/scope.sh"
+        ln -sfn "${SRC_DIR}/ranger/commands.py" "${DEST_DIR}/.config/ranger/commands.py"
     elif [ "$1" = "remove" ]; then
         _rm "${DEST_DIR}/.config/ranger"
     fi
@@ -236,7 +236,7 @@ install_tmux() {
 deploy_tmux() {
     if [ "$1" = "deploy" ]; then
         mkdir -p "${DEST_DIR}/.config/tmux"
-        ln -sf "${SRC_DIR}/tmux/tmux.conf" "${DEST_DIR}/.config/tmux/tmux.conf"
+        ln -sfn "${SRC_DIR}/tmux/tmux.conf" "${DEST_DIR}/.config/tmux/tmux.conf"
     elif [ "$1" = "remove" ]; then
         _rm "${DEST_DIR}/.config/tmux"
     fi
@@ -259,12 +259,12 @@ deploy_xorg() {
     if [ "$1" = "deploy" ]; then
         mkdir -p "${DEST_DIR}/.config/xorg"
         mkdir -p "${DEST_DIR}/images/shots"
-        ln -sf "${SRC_DIR}/xorg/xinitrc" "${DEST_DIR}/.xinitrc"
-        ln -sf "${SRC_DIR}/xorg/Xresources" "${DEST_DIR}/.config/xorg/Xresources"
-        ln -sf "${SRC_DIR}/xorg/Xlight_theme" "${DEST_DIR}/.config/xorg/Xlight_theme"
-        ln -sf "${SRC_DIR}/xorg/Xdark_theme" "${DEST_DIR}/.config/xorg/Xdark_theme"
-        ln -sf "${SRC_DIR}/xorg/typematrix.xkb" "${DEST_DIR}/.config/xorg/typematrix.xkb"
-        ln -sf "${SRC_DIR}/xorg/wallpapers/" "${DEST_DIR}/images/wallpapers"
+        ln -sfn "${SRC_DIR}/xorg/xinitrc" "${DEST_DIR}/.xinitrc"
+        ln -sfn "${SRC_DIR}/xorg/Xresources" "${DEST_DIR}/.config/xorg/Xresources"
+        ln -sfn "${SRC_DIR}/xorg/Xlight_theme" "${DEST_DIR}/.config/xorg/Xlight_theme"
+        ln -sfn "${SRC_DIR}/xorg/Xdark_theme" "${DEST_DIR}/.config/xorg/Xdark_theme"
+        ln -sfn "${SRC_DIR}/xorg/typematrix.xkb" "${DEST_DIR}/.config/xorg/typematrix.xkb"
+        ln -sfn "${SRC_DIR}/xorg/wallpapers/" "${DEST_DIR}/images/wallpapers"
     elif [ "$1" = "remove" ]; then
         _rm "${DEST_DIR}/.xinitrc"
         _rm "${DEST_DIR}/.config/xorg"

@@ -657,7 +657,8 @@ Store backup files in a =~/.emacs.d/saves= directory and mini-buffer history
 into a =~/.emacs.d/savehist= file.
 
 #+begin_src emacs-lisp :tangle yes
-(setq backup-directory-alist `(("." . skw/d-savedir))
+(make-directory skw/d-savedir t)
+(setq backup-directory-alist `(("." . ,skw/d-savedir))
       backup-by-copying t
       auto-save-default t
       auto-save-timeout 20
