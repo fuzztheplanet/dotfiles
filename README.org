@@ -43,7 +43,15 @@ poorly written and/or not maintained.
 *** emacs
 
 Details about my Emacs configuration are available in the main configuration
-file [[./emacs/skywhi.org][here]].
+file [[./emacs/skywhi.org][here]]. It is a literate Org document which =init.el= tangles and loads.
+All runtime state (installed packages, native-compiled code, backups,
+history, =custom.el=, …) goes to =$XDG_CACHE_HOME/emacs= (=~/.cache/emacs=)
+rather than into this repository, so =emacs/= only ever contains the tracked
+configuration. Optional per-machine overlays are loaded from
+=~/org/perso/conf.org= and =~/org/work/conf.org= if they exist.
+
+Minibuffer completion uses =vertico= / =orderless= / =consult= / =embark=,
+and =ripgrep= / =fd= are used by =consult-ripgrep= / =consult-fd=.
 
 *** git
 

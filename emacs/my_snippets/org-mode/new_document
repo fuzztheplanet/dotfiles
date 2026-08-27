@@ -2,7 +2,7 @@
 # name: New Document
 # --
 #+TITLE: $1
-#+DATE: <2020-03-15 Sun>
+#+DATE: `(format-time-string "<%Y-%m-%d %a>")`
 #+AUTHOR: skywhi
 #+EMAIL: skywhi@skywhi.net
 #+DESCRIPTION:
