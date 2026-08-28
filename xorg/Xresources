@@ -10,7 +10,6 @@ URxvt*saveLines:           8000
 URxvt*scrollBar:           false
 URxvt*scrollstyle:         plain
 URxvt*secondaryScroll:     true
-URxvt.selectToClipboard:   true
 URxvt.disallowedWindowOps: 20,21,SetXprop
 
 !! Cosmetics
@@ -26,23 +25,23 @@ URxvt*cursorBlink:    true
 URxvt*geometry:       400x400
 !! https://www.reddit.com/r/archlinux/comments/105t4ye/rxvtunicode_opens_in_the_middle_of_the_screen/
 
-!! Extensions
-URxvt.perl-ext-common: default,matcher,url-select,keyboard-select,resize-font,clipboard,selection-to-clipboard
-!! matcher
+!! Extensions (confirm-paste asks before pasting control characters)
+URxvt.perl-ext-common: default,matcher,keyboard-select,resize-font,confirm-paste
+
+!! Copy / paste (see ~/.dotfiles/copypaste.org). Built-in urxvt actions on
+!! Alt chords (M-c, M-v, M-space) that no terminal application (Emacs, tmux) uses.
+!! PRIMARY <-> CLIPBOARD mirroring is autocutsel's job (xinitrc), not urxvt's.
+URxvt.keysym.M-c:           eval:selection_to_clipboard
+URxvt.keysym.M-v:           eval:paste_clipboard
+URxvt.keysym.S-Insert:      eval:paste_clipboard
+!! matcher (URLs): click, or M-S-u / M-S-l
 URxvt.url-launcher:         firefox
 URxvt.matcher.button:       1
-URxvt.keysym.C-u:           perl:matcher:last
-URxvt.keysym.C-i:           perl:matcher:list
-!! url-select
-URxvt.url-select-launcher:  firefox
-URxvt.url-select.underline: true
-URxvt.keysym.M-u:           perl:url-select:select_next
-URxvt.keysym.M-Escape:      perl:keyboard-select:activate
-URxvt.keysym.M-s:           perl:keyboard-select:search
-!! clipboard
-URxvt.clipboard.autocopy:   true
-URxvt.keysym.M-c:           perl:clipboard:copy
-URxvt.keysym.M-v:           perl:clipboard:paste
+URxvt.keysym.M-S-u:         perl:matcher:last
+URxvt.keysym.M-S-l:         perl:matcher:list
+!! keyboard-select
+URxvt.keysym.M-space:       perl:keyboard-select:activate
+URxvt.keysym.C-S-f:         perl:keyboard-select:search
 !! Xft Settings
 Xft.dpi:       96
 Xft.antialias: true

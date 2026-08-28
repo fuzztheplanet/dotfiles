@@ -4,7 +4,7 @@
 set -o emacs
 shopt -s checkwinsize
 
-TERM=xterm-256color
+[ -z "$TMUX" ] && TERM=xterm-256color
 LANG=en_US.UTF-8
 LC_ALL=en_US.UTF-8
 HISTFILE="$HOME/.sh_history"
@@ -71,6 +71,8 @@ alias q='exit'
 alias remove-empty-files='find . -size 0 -print0 | xargs -0 rm -- '
 alias remove-empty-directories='find . -type d -empty -delete '
 alias x='cd $HOME && startx'
+alias pbcopy='clip.sh'
+alias pbpaste='clip.sh -o'
 
 
 # --- OS specific ---
@@ -219,10 +221,10 @@ if [ -x "$(command -v fzf)" ]; then
             --bind 'alt-r:execute-silent(echo {+} | cut -d" " -f1 | xargs docker stop)' \
             --bind 'alt-j:execute-silent(echo {+} | cut -d" " -f1 | xargs docker start)' \
             --bind 'alt-k:execute-silent(echo {+} | cut -d" " -f1 | xargs docker kill)' \
-            --bind "alt-i:execute-silent(echo {+} | tr ' ' '\n' | xsel -i)" \
+            --bind "alt-i:execute-silent(printf '%s\n' {+} | clip.sh)" \
             --bind 'alt-n:execute(read -p "Enter new name: " newname && docker rename {1} ${newname})' \
             --bind 'alt-p:execute(echo {+} | cut -d" " -f1 | xargs docker inspect | jq -C | less -R)' \
-            --bind 'alt-y:become(docker inspect --format "{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}" {1} | tr -d "\n" | xsel -i ; xsel -o)' \
+            --bind 'alt-y:become(docker inspect --format "{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}" {1} | tr -d "\n" | clip.sh ; clip.sh -o)' \
             --bind 'alt-a:select-all,alt-d:deselect-all' \
             --bind 'ctrl-j:preview-down,ctrl-k:preview-up,ctrl-/:toggle-preview' \
             --bind 'enter:become(for item in {+}; do echo $item | cut -d" " -f1; done)+abort' \
@@ -248,7 +250,7 @@ if [ -x "$(command -v fzf)" ]; then
             --bind "start:$RELOAD" --bind "change:$RELOAD" \
             --bind 'enter:become(for item in {+}; do echo $item | cut -d" " -f1; done)+abort' \
             --bind 'ctrl-o:become(docker run -it -v `pwd`:/work --rm {1})' \
-            --bind "alt-i:execute-silent(echo {+} | tr ' ' '\n' | xsel -i)" \
+            --bind "alt-i:execute-silent(printf '%s\n' {+} | clip.sh)" \
             --bind 'ctrl-r:execute-silent(for item in {+}; do echo $item | cut -d" " -f1 | xargs docker rmi -f; done)' \
             --bind 'alt-a:select-all,alt-d:deselect-all' \
             --bind 'ctrl-j:preview-down,ctrl-k:preview-up,ctrl-/:toggle-preview' \
@@ -355,7 +357,7 @@ if [ -x "$(command -v fzf)" ]; then
            --bind 'enter:execute:rifle {+}' \
            --bind 'ctrl-o:execute:$EDITOR {+}' \
            --bind "alt-o:become(echo {+} | tr ' ' '\n')" \
-           --bind 'alt-i:execute-silent(for item in {+}; do echo $item; done | xsel -i)' \
+           --bind "alt-i:execute-silent(printf '%s\n' {+} | clip.sh)" \
            --bind 'alt-a:select-all,alt-d:deselect-all,ctrl-/:toggle-preview' \
            --bind 'ctrl-j:preview-down,ctrl-k:preview-up' \
            --preview 'preview-file.sh {}'
@@ -402,8 +404,8 @@ if [ -x "$(command -v fzf)" ]; then
             --bind "ctrl-o:execute:$opener_emacs" \
             --bind "ctrl-f:execute:$EDITOR {+f}" \
             --bind 'alt-o:become(for item in {+}; do echo $item; done)' \
-            --bind "alt-i:execute-silent(echo {+} | tr ' ' '\n' | xsel -i)" \
-            --bind 'alt-h:execute-silent(for item in {+}; do echo $item | cut -d":" -f1; done | sort -u | xsel -i)' \
+            --bind "alt-i:execute-silent(printf '%s\n' {+} | clip.sh)" \
+            --bind "alt-h:execute-silent(printf '%s\n' {+} | cut -d: -f1 | sort -u | clip.sh)" \
             --bind 'alt-a:select-all,alt-d:deselect-all,ctrl-/:toggle-preview' \
             --bind 'ctrl-j:preview-down,ctrl-k:preview-up' \
             --delimiter : \

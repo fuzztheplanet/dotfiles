@@ -3,6 +3,7 @@
 
 !.gitignore
 !README.org
+!copypaste.org
 !manage.sh
 
 !bash/
@@ -11,6 +12,7 @@
 
 !bin/
 !bin/attach-tmux.sh
+!bin/clip.sh
 !bin/gen-cool-ssh-keys.sh
 !bin/grab-openbsd.sh
 !bin/kill-tmux.sh

@@ -292,6 +292,7 @@ topic.
 | =C-x M-l=                                       | =downcase-region=                                                |
 | =C-x C-l=                                       | =goto-line=                                                      |
 | =M-w= / =C-w=                                   | copy / kill the *line* when no region is active                  |
+| =C-y= / =M-y=                                   | yank from the system clipboard / =consult-yank-pop=              |
 | =M-k=                                           | =skw/kill-to-bol=                                                |
 | =M-;=                                           | =skw/comment-or-uncomment-region-or-line=                        |
 | =M-,=                                           | =er/expand-region=                                               |
@@ -970,7 +971,9 @@ Some "textual" cosmetics.
 
 #+begin_src emacs-lisp
 (setq kill-ring-max 100
-      save-interprogram-paste-before-kill 1
+      ;; t, not a number: a number N only saves clipboards shorter than N chars
+      save-interprogram-paste-before-kill t
+      kill-do-not-save-duplicates t
       yank-pop-change-selection t)
 #+end_src
 
@@ -1272,21 +1275,30 @@ a tree with =C-x u= (press =q= to quit). This replaces the heavier =undo-tree=.
 
 ***** Clipboard
 
-Kills go to the system clipboard through the terminal itself (OSC 52,
-=setSelection= in =xterm-extra-capabilities=): unlike =xclip= this needs no X
-binary and works over SSH; =tmux= must have =set-clipboard on= (it does).
-Reading the clipboard back is not possible through OSC 52 in most terminals,
-so [[https://elpa.gnu.org/packages/xclip.html][xclip]] stays enabled for pasting (=C-y= from another program) when an X
-or Wayland display is around (it drives =wl-copy= / =wl-paste= too).
+See =~/.dotfiles/copypaste.org= for the whole picture. Explicit copies
+(=M-w=, =C-w=) go to the X =CLIPBOARD= and =C-y= reads it back, through the
+[[https://elpa.gnu.org/packages/xclip.html][xclip]] package driving the =xclip= binary (or =wl-copy= / =wl-paste= on
+Wayland). =select-enable-primary= is nil so =C-y= is deterministic: the
+clipboard if it changed, otherwise the kill ring. Mouse drags still feed
+=PRIMARY= (=mouse-drag-copy-region=); whether =PRIMARY= mirrors into
+=CLIPBOARD= is decided by =autocutsel= in =xinitrc=, not here.
 
-=xterm-extra-capabilities= is set to =setSelection= only. The default
-(=check=) grants rxvt nothing at all, and enabling =reportBackground= on it
-made Emacs mis-detect the background as light, flipping every default face
-to its light variant on a dark terminal.
+=setSelection= in =xterm-extra-capabilities= makes Emacs also emit OSC 52 on
+every kill. Stock rxvt-unicode does *not* implement OSC 52 (its
+=clipboard-osc= extension is a private OSC 777 sequence), so locally this is
+a no-op; it matters inside =tmux= (=set-clipboard on= turns it into a tmux
+paste buffer, also over SSH) and in any terminal that does support it.
+The default value (=check=) grants rxvt nothing at all, and enabling
+=reportBackground= made Emacs mis-detect the background as light, flipping
+every default face to its light variant on a dark terminal.
+
+The Emacs daemon keeps the =DISPLAY= it was started with; after logging into
+a new X session, restart it (=C-u C-x C-c=) so =xclip= talks to the right
+server.
 
 #+begin_src emacs-lisp
 (setq select-active-regions nil
-      select-enable-primary t
+      select-enable-primary nil
       select-enable-clipboard t
       mouse-drag-copy-region t
       xterm-extra-capabilities '(setSelection))
@@ -1294,6 +1306,8 @@ to its light variant on a dark terminal.
 (use-package xclip
   :ensure t
   :if (or (getenv "DISPLAY") (getenv "WAYLAND_DISPLAY"))
+  :custom
+  (xclip-method (if (getenv "WAYLAND_DISPLAY") 'wl-copy 'xclip))
   :config
   (xclip-mode 1))
 #+end_src
