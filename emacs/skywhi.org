@@ -193,6 +193,17 @@ so that it also applies while =init.el= byte-compiles this very file.
   (setq byte-compile-warnings '(not cl-functions)))
 #+end_src
 
+Emacs ≥ 30 also warns about every loaded file lacking a =lexical-binding=
+cookie on its first line. The per-machine overlays tangled by =init.el=
+(=~/org/perso/conf.org=, …) do not carry one, so that specific warning is
+silenced (not even logged to =*Warnings*=) instead of being fixed in every
+overlay. It is the only entry of the =files= warning group, hence the whole
+group is muted.
+
+#+begin_src emacs-lisp
+(add-to-list 'warning-suppress-log-types '(files))
+#+end_src
+
 *** Elisp Utility Libraries
 
 Gimme [[https://github.com/magnars/dash.el][dash]].
@@ -1325,29 +1336,6 @@ Great helper to find and remember keybindings, built into Emacs ≥ 30.
   (setq which-key-sort-order 'which-key-key-order-alpha)
   :config
   (which-key-mode))
-#+end_src
-
-***** =sensitive-minor-mode=
-
-Used to prevent backups and auto-saves of sensitive files (from
-=my_elisp/=) by *Emacs only*, you still have to check git and such of course.
-Encrypted =.gpg= files are already handled by the built-in =epa-file= (which
-sets =epa-file-inhibit-auto-save=); the minor mode is enabled from a
-=find-file-hook= for =.secret(s)= files so that they keep their normal major
-mode (=auto-mode-alist= is for major modes only).
-
-#+begin_src emacs-lisp
-(use-package sensitive-minor-mode
-  :ensure nil ;; local, in skw/d-elisp
-  :diminish sensitive-minor-mode "Sens"
-  :commands sensitive-minor-mode
-  :init
-  (defun skw/maybe-sensitive-minor-mode ()
-    "Enable `sensitive-minor-mode' for secret-looking files."
-    (when (and buffer-file-name
-               (string-match-p "\\.\\(gpg\\|secrets?\\)\\'" buffer-file-name))
-      (sensitive-minor-mode 1)))
-  (add-hook 'find-file-hook #'skw/maybe-sensitive-minor-mode))
 #+end_src
 
 ***** Tmux compliance
