@@ -86,10 +86,6 @@ My [[https://newsboat.org/][newsboat]] configuration for reading RSS feeds.
 Pretty standard configuration for the [[https://github.com/ranger/ranger][ranger]] file manager with a few commands
 for [[https://github.com/junegunn/fzf][fzf]] integration.
 
-*** sshd
-
-Force SSH public key authentication.
-
 *** tmux
 
 Opiniated tmux configuration. I use scripts from =bin/tmux-*= to load sessions

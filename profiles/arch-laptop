@@ -202,27 +202,6 @@ deploy_ranger() {
 }
 
 
-### SSHd
-_register_module "sshd"
-sshd_pkgs="openssh"
-
-install_sshd() {
-    if [ "$1" = "install" ]; then
-        _add_to_pkgs ${sshd_pkgs}
-    elif [ "$1" = "uninstall" ]; then
-        _add_to_pkgs ${sshd_pkgs}
-    fi
-}
-
-deploy_sshd() {
-    if [ "$1" = "deploy" ]; then
-        sudo cp "${SRC_DIR}/sshd/force_publickey_auth.conf" "/etc/ssh/sshd_config.d/20-force_publickey_auth.conf"
-    elif [ "$1" = "remove" ]; then
-        sudo rm "/etc/ssh/sshd_config.d/20-force_publickey_auth.conf"
-    fi
-}
-
-
 ### Tmux
 _register_module "tmux"
 tmux_pkgs="tmux"

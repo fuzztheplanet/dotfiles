@@ -58,9 +58,6 @@
 !ranger/rifle.conf
 !ranger/scope.sh
 
-!sshd/
-!sshd/force_publickey_auth.conf
-
 !tmux/
 !tmux/tmux.conf
 
