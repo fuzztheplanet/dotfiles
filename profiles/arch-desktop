@@ -42,7 +42,7 @@ deploy_bin() {
 
 ### Emacs
 _register_module "emacs"
-emacs_pkgs="emacs-nox hunspell-fr hunspell-de hunspell-en_us hunspell-en_gb words"
+emacs_pkgs="emacs-nox hunspell-fr hunspell-de hunspell-en_us hunspell-en_gb words clang pyright bash-language-server tree-sitter-c tree-sitter-python tree-sitter-bash"
 
 install_emacs() {
     if [ "$1" = "install" ]; then
@@ -56,9 +56,11 @@ install_emacs() {
 
 deploy_emacs() {
     if [ "$1" = "deploy" ]; then
-        ln -sfn "${SRC_DIR}/emacs" "${DEST_DIR}/.emacs.d"
+        # A leftover ~/.emacs.d (older deploys) would shadow ~/.config/emacs
+        [ -L "${DEST_DIR}/.emacs.d" ] && _rm "${DEST_DIR}/.emacs.d"
+        mkdir -p "${DEST_DIR}/.config" && ln -sfn "${SRC_DIR}/emacs" "${DEST_DIR}/.config/emacs"
     elif [ "$1" = "remove" ]; then
-        _rm "${DEST_DIR}/.emacs.d"
+        _rm "${DEST_DIR}/.config/emacs"
     fi
 }
 

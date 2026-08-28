@@ -3,6 +3,7 @@
 #+OPTIONS: toc:2 num:nil H:8
 #+OPTIONS: tags:nil
 #+OPTIONS: html-postamble:nil
+#+PROPERTY: header-args:emacs-lisp :tangle (expand-file-name "emacs/skywhi.el" (or (getenv "XDG_CACHE_HOME") "~/.cache"))
 
 
 * About
@@ -36,9 +37,12 @@ Here are some setups that helped me build this one, you should check them out!
 :END:
 
 This block is tangled first so that the generated =skywhi.el= starts with the
-lexical-binding cookie (Emacs ≥ 30 warns about files without it).
+lexical-binding cookie (Emacs ≥ 30 warns about files without it). Every block
+is tangled to =$XDG_CACHE_HOME/emacs/skywhi.el= thanks to the file-level
+=header-args= property at the top of this document, and =init.el=
+byte-compiles the result so that it gets native-compiled too.
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 ;;; skywhi.el --- Tangled from skywhi.org  -*- lexical-binding: t -*-
 #+end_src
 
@@ -52,7 +56,7 @@ the same buffers without the need to reload the configuration file every time. I
 then use ~alias emc='emacsclient -c '~ in my =.bashrc= file to start a new Emacs
 client in the terminal and connect to the server.
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (require 'server)
 (unless (server-running-p) (server-start))
 #+end_src
@@ -68,28 +72,39 @@ lives under =skw/d-cache= (=$XDG_CACHE_HOME/emacs=, i.e. =~/.cache/emacs= by
 default) so that the dotfiles directory only ever contains the tracked
 configuration. This keeps =git status= clean and lets =.gitignore= stay small.
 
-#+begin_src emacs-lisp :tangle yes
-(setq skw/d-base     user-emacs-directory
-      skw/d-cache    (expand-file-name
-                      "emacs/" (or (getenv "XDG_CACHE_HOME") "~/.cache"))
-      skw/f-config   (concat skw/d-base "skywhi.org")
-      skw/d-elisp    (concat skw/d-base "my_elisp/")
-      skw/d-snippets (concat skw/d-base "my_snippets/")
-      skw/f-custom   (concat skw/d-cache "custom.el")
-      skw/d-savedir  (concat skw/d-cache "saves/")
-      skw/f-savehist (concat skw/d-cache "savehist"))
+The variables are declared with =defvar= (and wrapped in =eval-and-compile=)
+so that they also exist when =init.el= byte-compiles this file: =use-package=
+installs =:ensure= packages at expansion time and needs =package-user-dir= to
+already point at the cache. =init.el= declares =skw/d-cache= the same way
+(it needs it before this file exists); =defvar= makes the two definitions
+harmless duplicates.
 
-(make-directory skw/d-cache t)
-(make-directory skw/d-savedir t)
+#+begin_src emacs-lisp
+(eval-and-compile
+  (defvar skw/d-cache
+    (expand-file-name "emacs/" (or (getenv "XDG_CACHE_HOME") "~/.cache"))
+    "Directory holding every piece of Emacs state (packages, history, …).")
+  (defvar skw/d-base     user-emacs-directory)
+  (defvar skw/f-config   (concat skw/d-base "skywhi.org"))
+  (defvar skw/d-elisp    (concat skw/d-base "my_elisp/"))
+  (defvar skw/d-snippets (concat skw/d-base "my_snippets/"))
+  (defvar skw/f-custom   (concat skw/d-cache "custom.el"))
+  (defvar skw/d-savedir  (concat skw/d-cache "saves/"))
+  (defvar skw/f-savehist (concat skw/d-cache "savehist"))
+
+  (make-directory skw/d-cache t)
+  (make-directory skw/d-savedir t))
 #+end_src
 
 Redirect the remaining built-in state files there as well. Packages installed
 via =package.el= go to =skw/d-cache/elpa= (must be set before
 =package-initialize=), native-compiled code to =skw/d-cache/eln-cache=.
 
-#+begin_src emacs-lisp :tangle yes
-(setq package-user-dir           (concat skw/d-cache "elpa/")
-      auto-save-list-file-prefix (concat skw/d-cache "auto-save-list/.saves-")
+#+begin_src emacs-lisp
+(eval-and-compile
+  (setq package-user-dir (concat skw/d-cache "elpa/")))
+
+(setq auto-save-list-file-prefix (concat skw/d-cache "auto-save-list/.saves-")
       bookmark-default-file      (concat skw/d-cache "bookmarks")
       save-place-file            (concat skw/d-cache "places")
       tramp-persistency-file-name (concat skw/d-cache "tramp")
@@ -103,10 +118,10 @@ via =package.el= go to =skw/d-cache/elpa= (must be set before
 
 Also add custom Emacs Lisp files to =load-path= while we are at it.
 
-#+begin_src emacs-lisp :tangle yes
-(when (and (boundp 'skw/d-elisp)
-           (file-readable-p skw/d-elisp))
-  (add-to-list 'load-path skw/d-elisp))
+#+begin_src emacs-lisp
+(eval-and-compile
+  (when (file-readable-p skw/d-elisp)
+    (add-to-list 'load-path skw/d-elisp)))
 #+end_src
 
 *** Customize File
@@ -117,11 +132,9 @@ Also add custom Emacs Lisp files to =load-path= while we are at it.
 Use a separate =custom.el= file (in the cache directory) instead of cluttering
 our beloved =init.el= with ad-hoc customizations.
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (setq custom-file skw/f-custom)
-(unless (file-exists-p custom-file)
-  (write-region "" nil custom-file))
-(load custom-file)
+(load custom-file 'noerror 'nomessage)
 #+end_src
 
 *** Package Initialization
@@ -135,30 +148,34 @@ since Emacs 28, =org-contrib= lives on NonGNU) and [[https://melpa.org/packages/
 [[https://github.com/jwiegley/use-package][use-package]] is built into Emacs (≥ 29) and takes care of installing the
 remaining packages (with the =:ensure t= flag) for us.
 
-#+begin_src emacs-lisp :tangle yes
-(require 'package)
+The whole block is evaluated at compile time as well (see above).
 
-(add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/"))
-(add-to-list 'package-archives '("nongnu" . "https://elpa.nongnu.org/nongnu/"))
+#+begin_src emacs-lisp
+(eval-and-compile
+  (require 'package)
 
-;; Speed-up start-up by loading a single pre-computed autoloads file
-(setq package-quickstart t
-      package-quickstart-file (concat skw/d-cache "package-quickstart.el"))
+  (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/"))
+  (add-to-list 'package-archives '("nongnu" . "https://elpa.nongnu.org/nongnu/"))
 
-(package-initialize)
-(unless package-archive-contents
-  (package-refresh-contents))
+  ;; Speed-up start-up by loading a single pre-computed autoloads file
+  (setq package-quickstart t
+        package-quickstart-file (concat skw/d-cache "package-quickstart.el"))
 
-(require 'use-package)
-;; Packages are loaded eagerly unless a block says otherwise (:defer, :hook,
-;; :bind, :commands). Explicit is better than implicit here.
-(setq use-package-always-defer nil)
+  (unless package--initialized
+    (package-initialize))
+  (unless package-archive-contents
+    (package-refresh-contents))
+
+  (require 'use-package)
+  ;; Packages are loaded eagerly unless a block says otherwise (:defer, :hook,
+  ;; :bind, :commands). Explicit is better than implicit here.
+  (setq use-package-always-defer nil))
 #+end_src
 
 Let's always compile packages thanks to =auto-compile= to make sure that Emacs
 never loads outdated code.
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (use-package auto-compile
   :ensure t
   :config
@@ -168,17 +185,19 @@ never loads outdated code.
 
 Warnings are kept at their default level: hiding them is how a broken
 =backup-directory-alist= went unnoticed for years. Only the noisy
-=cl-functions= byte-compiler warning is muted.
+=cl-functions= byte-compiler warning is muted. Wrapped in =eval-and-compile=
+so that it also applies while =init.el= byte-compiles this very file.
 
-#+begin_src emacs-lisp :tangle yes
-(setq byte-compile-warnings '(not cl-functions))
+#+begin_src emacs-lisp
+(eval-and-compile
+  (setq byte-compile-warnings '(not cl-functions)))
 #+end_src
 
 *** Elisp Utility Libraries
 
 Gimme [[https://github.com/magnars/dash.el][dash]].
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (use-package dash
   :ensure t
   :defer t)
@@ -188,29 +207,141 @@ Gimme [[https://github.com/magnars/dash.el][dash]].
 :PROPERTIES:
 :CUSTOM_ID: General
 :END:
-*** Non-standard Keybindings
+*** Keybindings Cheatsheet
 :PROPERTIES:
 :CUSTOM_ID: General-keys
 :END:
 
-A few bindings below deliberately shadow Emacs defaults. They are collected
-here so that nobody (future me included) mistakes them for accidents.
+Every binding (hopefully) that this configuration adds or changes, grouped by
+topic.
 
-| Key       | Bound to                       | Default it replaces                  |
-|-----------+--------------------------------+--------------------------------------|
-| =C-v=     | =scroll-down=                  | =scroll-up-command=                  |
-| =M-n=     | =scroll-up=                    | (unbound)                            |
-| =C-z=     | =delete-other-windows=         | =suspend-frame=                      |
-| =C-x C-l= | =goto-line=                    | =downcase-region= (see =C-x M-l=)    |
-| =M-,=     | =er/expand-region=             | =xref-go-back=                       |
-| =M-l=     | =downcase-word=                | =downcase-word= (unchanged)          |
-| =M-o=     | =capitalize-word=              | =facemenu= prefix                    |
-| =M-i=     | =upcase-word=                  | =tab-to-tab-stop=                    |
-| =M-k=     | =skw/kill-to-bol=              | =kill-sentence=                      |
-| =M-;=     | =skw/comment-or-uncomment-…=   | =comment-dwim=                       |
-| =C-s=     | prefix (=C-s s=, =C-s r=, …)  | =isearch-forward= (use =C-s s=)      |
-| =C-x u=   | =vundo=                        | =undo=                               |
-| =C-x C-c= | kill terminal / server w/ =C-u= | =save-buffers-kill-terminal=        |
+***** Windows, frames, scrolling
+
+| Key                  | Bound to                                                  |
+|----------------------+-----------------------------------------------------------|
+| =C-z=                | =delete-other-windows=                                    |
+| =C-x <arrows>=       | =buf-move-{up,down,left,right}=                           |
+| =C-c <left/right>=   | =winner-undo= / =winner-redo= (built-in =winner-mode=)    |
+| =S-<arrows>= (Org)   | =windmove-*= (falls through from Org shift commands)      |
+| =C-v=                | =scroll-down= (page *up*)                                 |
+| =M-n=                | =scroll-up= (page *down*)                                 |
+| =C-x v <up/down>=    | scroll the *other* window                                 |
+| =C-x 5 0=, =C-x M-x= | =delete-frame= (keep server)                              |
+| =C-x C-c=            | =save-buffers-kill-terminal=; with =C-u= kills the server |
+| =<f5>=               | =revert-buffer=                                           |
+| =<f7>= / =S-<f7>=    | =toggle-truncate-lines= / =auto-fill-mode=                |
+| =C-c M-p=            | =font-lock-mode=                                          |
+| =C-c t t=            | =ef-themes-toggle= (=ef-dark= ⇄ =ef-bio=)                 |
+| =C-c t s=            | =ef-themes-select=                                        |
+| =C-c t d=            | =skw/disable-all-themes= (back to stock colours)          |
+
+***** Minibuffer & completion (=vertico= / =consult= / =embark=)
+
+| Key                               | Bound to                                          |
+|-----------------------------------+---------------------------------------------------|
+| =C-c m=                           | =execute-extended-command= (same as =M-x=)        |
+| =C-x b=                           | =consult-buffer=                                  |
+| =C-x M-f=                         | =find-file-other-window=                          |
+| =C-M-l=                           | =consult-imenu=                                   |
+| =C-s=                             | *prefix* (see below)                              |
+| =C-s s=                           | =consult-line=                                    |
+| =C-s r=                           | =consult-ripgrep=                                 |
+| =C-s z=                           | =consult-fd=                                      |
+| =C-s C-s= / =C-s C-r=             | plain =isearch-forward= / =isearch-backward=      |
+| =M-y=                             | =consult-yank-pop=                                |
+| =M-g g=, =M-g M-g=                | =consult-goto-line=                               |
+| =<=                               | narrow (=consult-narrow-key=, in consult prompts) |
+| =C-r= (minibuffer)                | =consult-history=                                 |
+| =C-c .=                           | =embark-act=                                      |
+| =C-c ;=                           | =embark-dwim=                                     |
+| =C-h B=                           | =embark-bindings=                                 |
+| =C-j= / =C-k= (vertico)           | next / previous candidate                         |
+| =C-f=, =C-l=, =TAB= (vertico)     | =vertico-insert=                                  |
+| =C-d= (vertico)                   | =vertico-directory-delete-word=                   |
+| =RET= / =DEL= / =M-DEL= (vertico) | enter dir / up one level / delete word            |
+| =M-RET= (vertico)                 | =vertico-exit-input= (use literal input)          |
+
+***** Buffers & projects
+
+| Key            | Bound to                                |
+|----------------+-----------------------------------------|
+| =C-x C-b=      | =ibuffer= (aliased over =list-buffers=) |
+| =C-c p=, =M-p= | =projectile-command-map=                |
+| =C-c f f=      | open this configuration file            |
+
+***** Editing
+
+| Key                                             | Bound to                                                         |
+|-------------------------------------------------+------------------------------------------------------------------|
+| =C-c i=                                         | =skw/cleanup-buffer-or-region= (untabify + indent + trailing ws) |
+| =C-c q=, =M-q=                                  | =fill-paragraph=                                                 |
+| =M-l=                                           | =downcase-word=                                                  |
+| =M-o=                                           | =capitalize-word=                                                |
+| =M-i=                                           | =upcase-word=                                                    |
+| =C-x M-l=                                       | =downcase-region=                                                |
+| =C-x C-l=                                       | =goto-line=                                                      |
+| =M-w= / =C-w=                                   | copy / kill the *line* when no region is active                  |
+| =M-k=                                           | =skw/kill-to-bol=                                                |
+| =M-;=                                           | =skw/comment-or-uncomment-region-or-line=                        |
+| =M-,=                                           | =er/expand-region=                                               |
+| =C-c SPC=                                       | =pop-to-mark-command=                                            |
+| =C-x u=                                         | =vundo= (undo tree, =q= quits)                                   |
+| =M-_=                                           | =undo-redo=                                                      |
+| =<f3>= / =<f4>=                                 | start / end-or-call keyboard macro                               |
+| =M-x skw/escape-quotes= / =skw/unescape-quotes= | (un)escape ="= in region or line                                 |
+
+***** Completion & snippets (=company= / =yasnippet=)
+
+| Key                           | Bound to                                                    |
+|-------------------------------+-------------------------------------------------------------|
+| =TAB=                         | snippet expansion, else =company-indent-or-complete-common= |
+| =M-/=                         | =company-complete=                                          |
+| =<f10>= / =S-<f10>=           | =company-mode= / =global-company-mode=                      |
+| =C-n= / =C-p= (company popup) | next / previous candidate                                   |
+| =C-d= / =M-.= (company popup) | show doc / show location                                    |
+| =C-c y y=                     | =yas-insert-snippet=                                        |
+| =C-c y n=                     | =yas-new-snippet=                                           |
+| =C-c y v=                     | =yas-visit-snippet-file=                                    |
+
+***** Spelling (=flyspell= / =hunspell=)
+
+| Key                   | Bound to                        |
+|-----------------------+---------------------------------|
+| =S-<f6>=              | =flyspell-mode=                 |
+| =C-c s s=             | =skw/flyspell-buffer-or-region= |
+| =C-c s e= / =C-c s g= | dictionary =en_US= / =en_GB=    |
+| =C-c s f= / =C-c s d= | dictionary =fr_FR= / =de_DE=    |
+| =M-$=                 | =ispell-word=                   |
+| =M-*=                 | =flyspell-auto-correct-word=    |
+| =M-ù=                 | =flyspell-goto-next-error=      |
+
+***** Programming (=eglot= / =flymake= / lisp / haskell)
+
+| Key                        | Bound to                                            |
+|----------------------------+-----------------------------------------------------|
+| =<f6>=                     | =flymake-mode=                                      |
+| =M-g n= / =M-g p=          | next / previous diagnostic (=next-error=, built-in) |
+| =C-c e l= (flymake)        | =flymake-show-buffer-diagnostics=                   |
+| =C-c e r= (eglot)          | =eglot-rename=                                      |
+| =C-c e a= (eglot)          | =eglot-code-actions=                                |
+| =C-c e f= (eglot)          | =eglot-format=                                      |
+| =C-c l i=                  | =skw/ielm= (REPL in a dedicated window)             |
+| =C-x j= (=*scratch*=)      | =eval-print-last-sexp=                              |
+| =C-c C-l= (haskell)        | =haskell-process-load-or-reload=                    |
+| =C-c C-z= (haskell, cabal) | =haskell-interactive-switch=                        |
+| =C-c C-c= (haskell)        | =haskell-process-cabal-switch=                      |
+
+***** Org
+
+| Key                         | Bound to                                              |
+|-----------------------------+-------------------------------------------------------|
+| =C-c a=                     | =org-agenda=                                          |
+| =C-c c=                     | =org-capture=                                         |
+| =C-c M-l=                   | =org-store-link=                                      |
+| =C-c C-l=                   | =org-insert-link-global= (everywhere)                 |
+| =C-c M-o= (org)             | =org-toggle-link-display=                             |
+| =C-c k= (org)               | =org-insert-structure-template= (=<s TAB= also works) |
+| =C-c C-f= / =C-c C-b= (org) | =org-next-block= / =org-previous-block=               |
 
 *** Start-up and Sane Defaults
 :PROPERTIES:
@@ -220,7 +351,7 @@ here so that nobody (future me included) mistakes them for accidents.
 
 Let's jump right in, shall we?
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (setq inhibit-startup-screen t)
 (setq initial-major-mode 'org-mode)
 (setq initial-scratch-message "#+TITLE: Aloha !\n")
@@ -231,7 +362,7 @@ Let's jump right in, shall we?
 These are the built-in modes and hooks that I like to have enabled by
 default.
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 ;; Default built-in modes
 (setq-default major-mode 'text-mode)
 (auto-compression-mode t)        ;; Handle compressed files
@@ -241,7 +372,6 @@ default.
 (global-subword-mode t)          ;; Treat camelCase as 2 words
 (global-font-lock-mode t)        ;; Syntax highlighting
 (global-prettify-symbols-mode t) ;; Prettify things if possible
-(visual-line-mode t)             ;; Better word-wrap and truncation
 
 ;; Hooks: clickable urls/emails in text, and only in comments/strings in code
 (add-hook 'text-mode-hook 'goto-address-mode)
@@ -254,7 +384,7 @@ actually edited thanks to [[https://github.com/lewang/ws-butler][ws-butler]]. A 
 every file we touch — including other people's repositories and tab-indented
 Makefiles — which makes for noisy diffs.
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (use-package ws-butler
   :ensure t
   :diminish ws-butler-mode
@@ -263,28 +393,23 @@ Makefiles — which makes for noisy diffs.
 
 ***** Encoding
 
-Let's be paranoid and force some UTF-8 goodness everywhere we can.
+UTF-8 everywhere. On a modern Emacs =set-language-environment= already sets
+the default, terminal, keyboard and file coding systems.
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (set-language-environment "UTF-8")
-(set-default-coding-systems 'utf-8)
-(set-terminal-coding-system 'utf-8)
-(set-keyboard-coding-system 'utf-8)
-(prefer-coding-system 'utf-8)
-(setq-default buffer-file-coding-system 'utf-8)
 #+end_src
 
 ***** Miscellaneous options
 
 Change various small options for convenience.
 
-#+begin_src emacs-lisp :tangle yes
-(defalias 'yes-or-no-p 'y-or-n-p) ;; Save ourselves some precious keystrokes
-(setq echo-keystrokes 0.1         ;; Shorter display delay
+#+begin_src emacs-lisp
+(setq use-short-answers t         ;; y/n instead of yes/no
+      echo-keystrokes 0.1         ;; Shorter display delay
       calendar-week-start-day 1   ;; Start week on Monday
       use-dialog-box nil          ;; Discrete!
-      ring-bell-function 'ignore  ;; And quiet!
-      visible-bell t)             ;; Blink instead of ring when bell is on
+      ring-bell-function 'ignore) ;; And quiet!
 #+end_src
 
 *** UI Tweaks
@@ -293,59 +418,28 @@ Change various small options for convenience.
 :END:
 ***** Appearance
 
-Get rid of the toolbars and time display but keep the line/column numbers
-in the status line.
+Get rid of the menu bar but keep the line/column numbers in the mode-line.
+Emacs is only ever run in a terminal here, so there is no tool bar, scroll
+bar, frame title or cursor blinking to configure.
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (menu-bar-mode -1)
-(blink-cursor-mode t)
 (line-number-mode t)
 (column-number-mode t)
-(global-hl-line-mode 0)
-
-(setq display-time-mode nil
-      display-time-default-load-average nil)
-
-;; In case I happen to run a GUI Emacs #YouNeverKnow. This is done per frame
-;; (and not with a one-shot `window-system' check at start-up) so that it also
-;; applies to graphical frames created later by a daemon started from a tty.
-(setq default-frame-alist
-      (append '((tool-bar-lines . 0)
-                (vertical-scroll-bars . nil)
-                (menu-bar-lines . 0))
-              default-frame-alist))
-
-(defun skw/setup-graphical-frame (&optional frame)
-  "Apply GUI-only settings to FRAME."
-  (with-selected-frame (or frame (selected-frame))
-    (when (display-graphic-p)
-      (global-hl-line-mode 1))))
-
-(add-hook 'after-make-frame-functions #'skw/setup-graphical-frame)
-(skw/setup-graphical-frame)
-#+end_src
-
-***** Frames
-
-Set the frame title and always start fullscreen frames.
-
-#+begin_src emacs-lisp :tangle yes
-(setq frame-title-format '(buffer-file-name "%f" ("%b")))
-(modify-all-frames-parameters '((fullscreen . maximized)))
 #+end_src
 
 ***** Fonts
 
 I demand pretty text!
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (font-lock-ensure)
 (setq font-lock-maximum-decoration t)
 #+end_src
 
 Toogle *font-lock-mode* on / off.
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (global-set-key (kbd "C-c M-p") 'font-lock-mode)
 #+end_src
 
@@ -353,7 +447,7 @@ Toogle *font-lock-mode* on / off.
 
 Move between windows with =C-x <key>=.
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 
 (use-package buffer-move
   :ensure t
@@ -366,37 +460,38 @@ Move between windows with =C-x <key>=.
 The built-in =winner-mode= allows to undo and redo window layouts with =C-c
 <left/right>=.
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (when (fboundp 'winner-mode)
   (winner-mode 1))
 #+end_src
 
 Delete all windows except the current one with =C-z=.
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (global-set-key (kbd "C-z") 'delete-other-windows)
 #+end_src
 
 ***** Scrolling
 
 Smoother scrolling options and keybindings to scroll unfocused windows.
+=scroll-conservatively= above 100 makes Emacs scroll line by line instead of
+recentering; =scroll-step= is left alone as it interacts badly with
+=scroll-margin=.
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (setq scroll-margin 5
-      scroll-step 2
+      scroll-conservatively 101
       scroll-preserve-screen-position 1)
 
 (defun skw/scroll-other-window-up ()
+  "Scroll the other window up by two lines."
   (interactive)
-  (if (boundp 'scroll-step)
-      (scroll-other-window scroll-step)
-    (scroll-other-window 1)))
+  (scroll-other-window 2))
 
 (defun skw/scroll-other-window-down ()
+  "Scroll the other window down by two lines."
   (interactive)
-  (if (boundp 'scroll-step)
-      (scroll-other-window-down scroll-step)
-    (scroll-other-window-down 1)))
+  (scroll-other-window-down 2))
 
 (global-set-key (kbd "C-x v <up>")   'skw/scroll-other-window-down)
 (global-set-key (kbd "C-x v <down>") 'skw/scroll-other-window-up)
@@ -410,7 +505,7 @@ Mouse support in the terminal. (An old =(defun track-mouse (e))= workaround
 for =xterm-mouse-mode= used to live here; it redefined a core macro and is not
 needed on modern Emacs.)
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (require 'mouse)
 (xterm-mouse-mode t)
 (global-set-key (kbd "<mouse-4>")    'scroll-down)
@@ -423,74 +518,63 @@ needed on modern Emacs.)
 
 ***** Themes
 
-A safer =load-theme= function that disables previously loaded themes before
-executing a new one.
+A safer =load-theme=: =skw/disable-all-themes= disables every enabled theme
+and is advised before =load-theme= so that themes never stack. It is also a
+command (=C-c t d=) to go back to stock Emacs colours; the =&rest _= swallows
+the arguments =load-theme= passes when it runs as advice.
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (defun skw/disable-all-themes (&rest _)
   "Disable every enabled custom theme."
+  (interactive)
   (mapc #'disable-theme custom-enabled-themes))
 
 (advice-add 'load-theme :before #'skw/disable-all-themes)
 #+end_src
 
-Some themes from [[https://protesilaos.com/emacs/ef-themes][ef-themes]] by [[https://protesilaos.com/][Protesilaos Stavrou]] that I like with custom
-keybindings to switch between them.
+Some themes from [[https://protesilaos.com/emacs/ef-themes][ef-themes]] by [[https://protesilaos.com/][Protesilaos Stavrou]] that I like. The package
+ships its own commands: =ef-themes-toggle= (=C-c t t=) flips between the two
+themes of =ef-themes-to-toggle= and =ef-themes-select= (=C-c t s=) prompts for
+any of them; both disable the previous theme first. No theme is loaded at
+start-up: Emacs starts with its stock colours and =C-c t t= enables =ef-dark=
+(then flips to =ef-bio=). The colourful mode-line of old came from
+=smart-mode-line='s own =light= theme, which is gone.
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (use-package ef-themes
   :ensure t
-  :bind (("C-c t t" . 'skw/disable-custom-themes)
-         ("C-c t d" . 'skw/ef-load-dark)
-         ("C-c t b" . 'skw/ef-load-bio))
-  :config
-  (defun skw/disable-custom-themes ()
-    (interactive)
-    (dolist (i custom-enabled-themes)
-      (disable-theme i)))
-
-  (defun skw/ef-load-bio ()
-    (interactive)
-    (load-theme 'ef-bio))
-
-  (defun skw/ef-load-dark ()
-    (interactive)
-    (load-theme 'ef-dark)))
+  :bind (("C-c t t" . ef-themes-toggle)
+         ("C-c t s" . ef-themes-select)
+         ("C-c t d" . skw/disable-all-themes))
+  :custom
+  (ef-themes-to-toggle '(ef-dark ef-bio)))
 #+end_src
 
 ***** =Diminish=
 
 =diminish= lets us hide unwanted modes from the mode-line.
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (use-package diminish
   :ensure t
   :demand t) ;; needed early, every :diminish below depends on it
 #+end_src
 
-***** =Smart-mode-line=
+***** Mode-line
 
-Better looking mode-line, other themes are included for testing.
+The built-in =mode-line-compact= (Emacs ≥ 28) collapses runs of spaces in the
+mode-line so that it fits narrow terminal windows; combined with =diminish=
+this is enough, no need for =smart-mode-line= anymore.
 
-#+begin_src emacs-lisp :tangle yes
-(use-package smart-mode-line
-  :ensure t
-  :init
-  (setq sml/shorten-directory t
-        sml/shorten-modes t
-        sml/no-confirm-load-theme t) ;; its theme is not in custom-safe-themes on a fresh machine
-  :config
-  (setq sml/theme 'light)
-  ;; (setq sml/theme 'respectful)
-  ;; (setq sml/theme 'dark)
-  (sml/setup))
+#+begin_src emacs-lisp
+(setq mode-line-compact 'long)
 #+end_src
 
 ***** =Volatile-highlights=
 
 This [[https://www.emacswiki.org/emacs/VolatileHighlights][package]] highlights recent region-related changes like /undo/ or /yank/.
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (use-package volatile-highlights
   :ensure t
   :diminish volatile-highlights-mode
@@ -516,8 +600,9 @@ reimplementing it:
 The keybindings intentionally mirror the previous =ivy=/=counsel=/=swiper=
 setup: =C-s s= search in buffer, =C-s r= ripgrep, =C-s z= find files,
 =C-x b= buffers, =C-M-l= imenu, =M-y= yank-pop, =M-x= / =C-c m= commands.
+Plain =isearch= stays reachable as =C-s C-s= / =C-s C-r=.
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (use-package vertico
   :ensure t
   :init
@@ -564,21 +649,19 @@ setup: =C-s s= search in buffer, =C-s r= ripgrep, =C-s z= find files,
 (add-hook 'minibuffer-setup-hook #'cursor-intangible-mode)
 #+end_src
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (use-package consult
   :ensure t
-  :bind (("M-x"     . execute-extended-command)
-         ("C-c m"   . execute-extended-command)
+  :bind (("C-c m"   . execute-extended-command)
          ("C-x b"   . consult-buffer)
-         ("C-x C-f" . find-file)
          ("C-x M-f" . find-file-other-window)
          ("C-M-l"   . consult-imenu)
-         ("C-h f"   . describe-function)
-         ("C-h v"   . describe-variable)
 
          ("C-s s"   . consult-line)
          ("C-s r"   . consult-ripgrep)
          ("C-s z"   . consult-fd)
+         ("C-s C-s" . isearch-forward)
+         ("C-s C-r" . isearch-backward)
 
          ("M-y"     . consult-yank-pop)
          ("M-g g"   . consult-goto-line)
@@ -593,7 +676,8 @@ setup: =C-s s= search in buffer, =C-s r= ripgrep, =C-s z= find files,
 
   :config
   (setq consult-narrow-key "<"
-        consult-preview-key 'any
+        ;; preview follows the cursor, but not on every single keystroke
+        consult-preview-key '(:debounce 0.2 any)
         ;; same flags as the old counsel-rg-base-command
         consult-ripgrep-args
         "rg --null --line-buffered --color=never --max-columns=1000 \
@@ -608,8 +692,9 @@ setup: =C-s s= search in buffer, =C-s r= ripgrep, =C-s z= find files,
 
 (use-package embark
   :ensure t
-  :bind (("C-." . embark-act)
-         ("C-;" . embark-dwim)
+  ;; C-. and C-; cannot be typed in a terminal (and flyspell grabs them anyway)
+  :bind (("C-c ." . embark-act)
+         ("C-c ;" . embark-dwim)
          ("C-h B" . embark-bindings))
   :init
   (setq prefix-help-command #'embark-prefix-help-command))
@@ -623,10 +708,10 @@ setup: =C-s s= search in buffer, =C-s r= ripgrep, =C-s z= find files,
 ***** Exiting Emacs
 
 
-=C-x C-x= will shutdown emacs-server if the current frame is the last
+=C-u C-x C-c= will shutdown emacs-server if the current frame is the last
 instance. =C-x M-x= will leave the server running in the background instead.
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (global-set-key (kbd "C-x 5 0") 'delete-frame)
 (global-set-key (kbd "C-x M-x") 'delete-frame)
 (global-set-key (kbd "C-x C-c")
@@ -643,7 +728,7 @@ instance. =C-x M-x= will leave the server running in the background instead.
 :END:
 ***** Get current directory
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (defun skw/get-file-directory ()
   "Return the full path to the current open file, without the file name."
   (if (null load-file-name)
@@ -655,15 +740,15 @@ instance. =C-x M-x= will leave the server running in the background instead.
 
 Simply open a file if it exists already, otherwise don't create a new one.
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (defun skw/open-file-readable (fname)
-  "Open a file, does not create a new file if it does not exist"
-  (interactive)
+  "Open FNAME, but do not create it if it does not exist."
+  (interactive "fFile: ")
   (if (file-readable-p fname)
       (progn
         (find-file fname)
-        (message (format "Opened %s" fname)))
-    (message (format "File %s does not exist" fname))))
+        (message "Opened %s" fname))
+    (message "File %s does not exist" fname)))
 #+end_src
 
 ***** Quickly access files
@@ -671,7 +756,7 @@ Simply open a file if it exists already, otherwise don't create a new one.
 Here I add some files to quickly open them with =C-c f <key>=. Like this
 configuration file.
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (global-set-key (kbd "C-c f f") (lambda () (interactive)
                                   (skw/open-file-readable skw/f-config)))
 #+end_src
@@ -681,7 +766,7 @@ configuration file.
 Store backup files in the =saves/= directory and mini-buffer history into the
 =savehist= file, both under =skw/d-cache=.
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (setq backup-directory-alist `(("." . ,skw/d-savedir))
       backup-by-copying t
       auto-save-default t
@@ -704,42 +789,23 @@ Store backup files in the =saves/= directory and mini-buffer history into the
 :END:
 ***** Manually revert buffer
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (global-set-key (kbd "<f5>") 'revert-buffer)
 #+end_src
 
 ***** Minibuffer
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (setq history-length 250
       history-delete-duplicates t)
-
-(defun skw/kill-completions-buffer ()
-  "Get rid of the *Completions* buffer when leaving the minibuffer."
-  (let ((buffer "*Completions*"))
-    (and (get-buffer buffer) (kill-buffer buffer))))
-
-(add-hook 'minibuffer-exit-hook #'skw/kill-completions-buffer)
-#+end_src
-
-***** =miniedit=
-
-With =miniedit= it is possible to edit large minibuffer commands
-by opening a dedicated buffer with =C-M-e=.
-
-#+begin_src emacs-lisp :tangle yes
-(use-package miniedit
-  :ensure t
-  :commands minibuffer-edit
-  :init
-  (miniedit-install))
+(minibuffer-depth-indicate-mode 1) ;; show [2] etc. for recursive minibuffers
 #+end_src
 
 ***** =ibuffer=
 
 For a better buffer list/menu.
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (defalias 'list-buffers 'ibuffer)
 (add-hook 'ibuffer-mode-hook #'ibuffer-auto-mode)
 
@@ -770,17 +836,17 @@ For a better buffer list/menu.
 
 Makes buffer names unique when needed to avoid possible confusions.
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (require 'uniquify)
 (setq  uniquify-buffer-name-style 'post-forward
        uniquify-separator ":"
-       uniquify-after-kill-buffer-p t
+       uniquify-after-kill-buffer-flag t
        uniquify-ignore-buffers-re "^\\*")
 #+end_src
 
 ***** =projectile=
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (use-package projectile
   :diminish projectile-mode
   :ensure t
@@ -819,7 +885,7 @@ Makes buffer names unique when needed to avoid possible confusions.
 
 Some "textual" cosmetics.
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (global-set-key (kbd "<f7>")   'toggle-truncate-lines)
 (global-set-key (kbd "S-<f7>") 'auto-fill-mode)
 (global-set-key (kbd "C-c i")  'skw/cleanup-buffer-or-region)
@@ -832,7 +898,7 @@ Some "textual" cosmetics.
               tab-width 4
               fill-column 80
               sentence-end-double-space nil
-              show-trailing-whitespace nil ;; edit???
+              show-trailing-whitespace nil
               require-final-newline nil)
 
 ;; Indent
@@ -883,7 +949,7 @@ Some "textual" cosmetics.
 
 ***** Case change
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (global-set-key (kbd "M-l") 'downcase-word)
 (global-set-key (kbd "M-o") 'capitalize-word)
 (global-set-key (kbd "M-i") 'upcase-word)
@@ -891,7 +957,7 @@ Some "textual" cosmetics.
 
 ***** Copy/paste
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (setq kill-ring-max 100
       save-interprogram-paste-before-kill 1
       yank-pop-change-selection t)
@@ -900,7 +966,7 @@ Some "textual" cosmetics.
 With this hack, if the region is empty then the current line is copied /
 killed instead. Makes you spare a few keystrokes.
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (defun skw/region-or-line-args (verb)
   "Return (BEG END) for the active region, or the current line.
 VERB is used in the echo-area message."
@@ -927,7 +993,7 @@ VERB is used in the echo-area message."
 
 Kill text from the current position to the beginning of line.
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (global-set-key (kbd "M-k") 'skw/kill-to-bol)
 
 (defun skw/kill-to-bol ()
@@ -941,65 +1007,67 @@ Kill text from the current position to the beginning of line.
 Escape or unescape quotes in the selection. If no region is marked, applies to
 the current line instead. Taken from [[ https://ergoemacs.org/emacs/elisp_escape_quotes.html][ergoemacs]].
 
-#+begin_src emacs-lisp :tangle yes
-(defun skw/escape-quotes (@begin @end)
+#+begin_src emacs-lisp
+(defun skw/escape-quotes (begin end)
+  "Backslash-escape every double quote between BEGIN and END."
   (interactive
    (if (use-region-p)
        (list (region-beginning) (region-end))
      (list (line-beginning-position) (line-end-position))))
   (save-excursion
     (save-restriction
-      (narrow-to-region @begin @end)
+      (narrow-to-region begin end)
       (goto-char (point-min))
       (while (search-forward "\"" nil t)
-        (replace-match "\\\"" "FIXEDCASE" "LITERAL"))))
+        (replace-match "\\\"" t t))))
   (message "Escaped quotes"))
 
-(defun skw/unescape-quotes (@begin @end)
+(defun skw/unescape-quotes (begin end)
+  "Remove the backslash before every double quote between BEGIN and END."
   (interactive
    (if (use-region-p)
        (list (region-beginning) (region-end))
      (list (line-beginning-position) (line-end-position))))
   (save-excursion
     (save-restriction
-      (narrow-to-region @begin @end)
+      (narrow-to-region begin end)
       (goto-char (point-min))
       (while (search-forward "\\\"" nil t)
-        (replace-match "\"" "FIXEDCASE" "LITERAL"))))
+        (replace-match "\"" t t))))
   (message "Unescaped quotes"))
 #+end_src
 
 ***** Goto-line
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (global-set-key (kbd "C-x C-l") 'goto-line)
 #+end_src
 
 ***** Case manipulation
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (global-set-key (kbd "C-x M-l") 'downcase-region)
 #+end_src
 
 ***** Macros
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (global-set-key (kbd "<f3>") 'kmacro-start-macro-or-insert-counter)
 (global-set-key (kbd "<f4>") 'kmacro-end-or-call-macro)
 #+end_src
 
 ***** Mark & region
 
-#+begin_src emacs-lisp :tangle yes
-(global-set-key (kbd "C-x p")   'pop-to-mark-command)
-(global-set-key (kbd "C-x n n") 'narrow-to-region)
-(global-set-key (kbd "C-x n w") 'widen)
+=C-x p= is the built-in =project= prefix (Emacs ≥ 28), so popping marks lives
+on =C-c SPC= (=C-u C-SPC= works too, and repeats thanks to
+=set-mark-command-repeat-pop=).
+
+#+begin_src emacs-lisp
+(global-set-key (kbd "C-c SPC") 'pop-to-mark-command)
 
 (delete-selection-mode t)
-(transient-mark-mode t)
 (put 'narrow-to-region 'disabled nil)
-(setq select-active-regions t
-      set-mark-command-repeat-pop t)
+(setq set-mark-command-repeat-pop t)
 #+end_src
 
 ***** Parenthesis
@@ -1011,7 +1079,7 @@ Themes define their own =show-paren-match= face, so the underline is added
 with =custom-set-faces= (which survives theme switches) rather than by
 overriding the colours at load time.
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (require 'paren)
 (show-paren-mode 1)
 (custom-set-faces '(show-paren-match ((t (:underline t)))))
@@ -1019,12 +1087,15 @@ overriding the colours at load time.
 
 ***** =company=
 
-I am using =company-mode= for auto-completion, switching it
-on/off with =<F11>= (current buffer) and =S-<F11>= (globally).
-Navigate between completions with =C-n= and =C-p= or with the
-up/down arrows.
+I am using =company-mode= for auto-completion, switching it on/off with
+=<F10>= (current buffer) and =S-<F10>= (globally). Navigate between completions
+with =C-n= and =C-p= or with the up/down arrows. =TAB= (the real terminal key,
+not =<tab>=) indents, or completes when the line is already indented; it is
+bound in =company-mode-map= so that =yasnippet='s own conditional =TAB=
+binding gets the first shot at expanding a snippet. =company-capf= (the
+default first backend) is what =eglot= feeds.
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (use-package company
   :ensure t
   :diminish company-mode "Com"
@@ -1032,7 +1103,9 @@ up/down arrows.
   (("<f10>"   . company-mode)
    ("S-<f10>" . global-company-mode)
    ("M-/" . company-complete)
-   ("<tab>" . company-indent-or-complete-common)
+
+   :map company-mode-map
+   ("TAB" . company-indent-or-complete-common)
 
    :map company-active-map
    ("C-n" . company-select-next)
@@ -1041,30 +1114,22 @@ up/down arrows.
    ("M-." . company-show-location))
 
   :init
-  (setq company-tooltip-limit 20
+  (setq tab-always-indent 'complete
+        company-tooltip-limit 20
         company-show-quick-access t
         company-dabbrev-downcase nil
         company-minimum-prefix-length 3
         company-idle-delay 0.5
         company-echo-delay 0)
 
-  (add-hook 'c-mode-common-hook 'company-mode)
-  (add-hook 'sgml-mode-hook 'company-mode)
-  (add-hook 'emacs-lisp-mode-hook 'company-mode)
-  (add-hook 'text-mode-hook 'company-mode)
-  (add-hook 'lisp-mode-hook 'company-mode)
-  (add-hook 'sh-mode-hook 'company-mode)
-  (add-hook 'org-mode-hook 'company-mode)
-
   :config
-  (add-to-list 'company-backends 'company-math-symbols-unicode)
   (global-company-mode))
 #+end_src
 
 Using [[https://github.com/company-mode/company-statistics][company-statistics]] to rearrange suggestions made by =company= by frequency
 of usage:
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (use-package company-statistics
   :ensure t
   :after company
@@ -1074,25 +1139,15 @@ of usage:
   (company-statistics-mode))
 #+end_src
 
-***** =ripgrep=
-
-#+begin_src emacs-lisp :tangle yes
-(use-package ripgrep
-  :ensure t
-  :bind
-  (("C-c d d" . ripgrep-regexp))
-  :custom-face
-  (ripgrep-match-face ((t (:foreground "dodger blue" :background unspecified))))
-  (ripgrep-hit-face ((t (:foreground "red")))))
-#+end_src
-
 ***** =flyspell=
 
 I use =flyspell= along with the =hunspell= backend to spellcheck a region/buffer
 (=C-c s=). This requires the [[https://archlinux.org/packages/extra/any/words/][words]] and [[https://archlinux.org/packages/extra/x86_64/hunspell/][hunspell]] packages (plus the
-=hunspell-{en_us,en_gb,fr,de}= dictionaries) on ArchLinux.
+=hunspell-{en_us,en_gb,fr,de}= dictionaries) on ArchLinux. The automatic
+=flyspell= hooks are only installed when =hunspell= is actually found,
+otherwise every text buffer would complain at start-up.
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 ;; US, GB, FR and DE dictionaries
 (defun skw/flyspell-dict-american ()
   (interactive)
@@ -1130,6 +1185,9 @@ I use =flyspell= along with the =hunspell= backend to spellcheck a region/buffer
 (use-package flyspell
   :ensure nil ;; built-in
   :diminish flyspell-mode "spell"
+  :if (executable-find "hunspell")
+  :hook ((text-mode . flyspell-mode)
+         (prog-mode . flyspell-prog-mode))
   :bind (("S-<f6>" . flyspell-mode)
          ("C-c s e" . skw/flyspell-dict-american)
          ("C-c s g" . skw/flyspell-dict-english)
@@ -1141,20 +1199,19 @@ I use =flyspell= along with the =hunspell= backend to spellcheck a region/buffer
          ("M-ù"     . flyspell-goto-next-error))
   :init
   (setq ispell-program-name (executable-find "hunspell")
-        ispell-dictionary "en_US")
-  :config
-  (flyspell-mode 1))
+        ispell-dictionary "en_US"))
 
-(defun restart-flyspell-mode ()
+(defun skw/restart-flyspell-mode ()
+  "Restart `flyspell-mode' so that a dictionary change takes effect."
   (when flyspell-mode
-    (flyspell-mode-off)
-    (flyspell-mode-on)))
-(add-hook 'ispell-change-dictionary-hook 'restart-flyspell-mode)
+    (flyspell-mode -1)
+    (flyspell-mode 1)))
+(add-hook 'ispell-change-dictionary-hook #'skw/restart-flyspell-mode)
 #+end_src
 
 ***** =ediff=
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 ;; Fix new window opening / splitting
 (setq ediff-window-setup-function 'ediff-setup-windows-plain
       ediff-split-window-function 'split-window-horizontally)
@@ -1180,7 +1237,7 @@ I use =flyspell= along with the =hunspell= backend to spellcheck a region/buffer
 
 Very useful utility to quickly select growing blocks of text.
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (use-package expand-region
   :ensure t
   :bind ("M-," . er/expand-region))
@@ -1188,11 +1245,12 @@ Very useful utility to quickly select growing blocks of text.
 
 ***** Undo
 
-Emacs (≥ 28) has a built-in =undo-redo=; [[https://github.com/casouri/vundo][vundo]] visualizes the undo history as
+Emacs (≥ 28) has a built-in =undo-redo=, bound to =M-_= (=C-?=, the usual
+choice, cannot be sent by a terminal); [[https://github.com/casouri/vundo][vundo]] visualizes the undo history as
 a tree with =C-x u= (press =q= to quit). This replaces the heavier =undo-tree=.
 
-#+begin_src emacs-lisp :tangle yes
-(global-set-key (kbd "C-?") 'undo-redo)
+#+begin_src emacs-lisp
+(global-set-key (kbd "M-_") 'undo-redo)
 
 (use-package vundo
   :ensure t
@@ -1201,19 +1259,30 @@ a tree with =C-x u= (press =q= to quit). This replaces the heavier =undo-tree=.
   (vundo-glyph-alist vundo-unicode-symbols))
 #+end_src
 
-***** =xclip=
+***** Clipboard
 
-The classic copy/paste tricks from the OS clipboard (requires *xclip* from
-Xorg).
+Kills go to the system clipboard through the terminal itself (OSC 52,
+=setSelection= in =xterm-extra-capabilities=): unlike =xclip= this needs no X
+binary and works over SSH; =tmux= must have =set-clipboard on= (it does).
+Reading the clipboard back is not possible through OSC 52 in most terminals,
+so [[https://elpa.gnu.org/packages/xclip.html][xclip]] stays enabled for pasting (=C-y= from another program) when an X
+or Wayland display is around (it drives =wl-copy= / =wl-paste= too).
 
-#+begin_src emacs-lisp :tangle yes
+=xterm-extra-capabilities= is set to =setSelection= only. The default
+(=check=) grants rxvt nothing at all, and enabling =reportBackground= on it
+made Emacs mis-detect the background as light, flipping every default face
+to its light variant on a dark terminal.
+
+#+begin_src emacs-lisp
+(setq select-active-regions nil
+      select-enable-primary t
+      select-enable-clipboard t
+      mouse-drag-copy-region t
+      xterm-extra-capabilities '(setSelection))
+
 (use-package xclip
   :ensure t
-  :init
-  (setq select-active-regions nil
-        select-enable-primary t
-        select-enable-clipboard t
-        mouse-drag-copy-region t)
+  :if (or (getenv "DISPLAY") (getenv "WAYLAND_DISPLAY"))
   :config
   (xclip-mode 1))
 #+end_src
@@ -1224,7 +1293,7 @@ Xorg).
 :END:
 ***** Add to auto-mode-alist
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (defun skw/add-auto-mode (mode &rest patterns)
   "Use `mode` with given filename `patterns`"
   (dolist (pattern patterns)
@@ -1233,7 +1302,7 @@ Xorg).
 
 ***** List installed packages
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (defun skw/list-installed-packages ()
   "Return a list of all installed packages with their versions"
   (interactive)
@@ -1244,39 +1313,18 @@ Xorg).
    package-activated-list))
 #+end_src
 
-***** =howdoi=
-
-Looking-up Stack Overflow answers in an Emacs buffer.
-
-#+begin_src emacs-lisp :tangle yes
-(use-package howdoi
-  :ensure t
-  :defer t)
-#+end_src
-
 ***** =which-key=
 
-Great helper to find and remember keybindings.
+Great helper to find and remember keybindings, built into Emacs ≥ 30.
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (use-package which-key
-  :ensure t
+  :ensure nil
   :diminish which-key-mode
   :init
   (setq which-key-sort-order 'which-key-key-order-alpha)
   :config
   (which-key-mode))
-#+end_src
-
-***** =discover-my-major=
-
-Get help for major modes.
-
-#+begin_src emacs-lisp :tangle yes
-(use-package discover-my-major
-  :ensure t
-  :bind (("C-h C-m" . discover-my-major)
-         ("C-h M-m" . discover-my-mode)))
 #+end_src
 
 ***** =sensitive-minor-mode=
@@ -1288,7 +1336,7 @@ sets =epa-file-inhibit-auto-save=); the minor mode is enabled from a
 =find-file-hook= for =.secret(s)= files so that they keep their normal major
 mode (=auto-mode-alist= is for major modes only).
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (use-package sensitive-minor-mode
   :ensure nil ;; local, in skw/d-elisp
   :diminish sensitive-minor-mode "Sens"
@@ -1306,7 +1354,7 @@ mode (=auto-mode-alist= is for major modes only).
 
 See [[https://wiki.archlinux.org/index.php/Emacs#Shift_.2B_Arrow_keys_not_working_in_emacs_within_tmux][here]].
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (defun skw/tmux-xterm-keys (&rest _)
   "Apply xterm keymap, allowing use of keys passed through tmux."
   (when (getenv "TMUX")
@@ -1330,7 +1378,7 @@ See [[https://wiki.archlinux.org/index.php/Emacs#Shift_.2B_Arrow_keys_not_workin
 Scroll the compilation buffer until the first error and render ANSI colours
 with the built-in =ansi-color-compilation-filter= (Emacs ≥ 28).
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (setq compilation-ask-about-save nil
       compilation-scroll-output  'next-error
       compilation-skip-threshold 2)
@@ -1341,7 +1389,7 @@ with the built-in =ansi-color-compilation-filter= (Emacs ≥ 28).
 
 ***** (un)comment region or line
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (defun skw/comment-or-uncomment-region-or-line ()
   " Comment or uncomment the region or the current line if no region is active."
   (interactive)
@@ -1354,39 +1402,95 @@ with the built-in =ansi-color-compilation-filter= (Emacs ≥ 28).
 (global-set-key (kbd "M-;") 'skw/comment-or-uncomment-region-or-line)
 #+end_src
 
-***** =flycheck=
+***** =eglot= (LSP) and =flymake=
 
-Toggle =flycheck-mode= with =<f6>= and =C-<f6>=.
+[[https://www.gnu.org/software/emacs/manual/html_node/eglot/][eglot]] is the built-in LSP client (Emacs ≥ 29): completion (through
+=company-capf=), diagnostics (through the built-in =flymake=), rename, xref…
+It is started automatically in C, Python and shell buffers (both the classic
+and the tree-sitter major modes: the =-ts-= modes do *not* run the classic
+modes' hooks, so both are listed and the server lookup uses =derived-mode-p=),
+but only when a language server is actually installed: the servers come from
+the =clang=, =pyright= and =bash-language-server= Arch packages (see the
+profiles). Buffers managed by =eglot= are formatted by the server on save,
+which replaces =py-autopep8=; the hook is removed again when =eglot= is shut
+down (=eglot-managed-mode-hook= runs on disable too). Toggle =flymake-mode= with =<f6>=; =M-n= / =M-p= are not
+touched, use =M-g n= / =M-g p= (=next-error=) to jump between diagnostics.
 
-#+begin_src emacs-lisp :tangle yes
-(use-package flycheck
-  :ensure t
-  :diminish flycheck-mode "check"
-  :bind (("<f6>"   . flycheck-mode)
-         ("C-<f6>" . global-flycheck-mode))
-  :hook ((c-mode
-          c++-mode
-          emacs-lisp-mode
-          lisp-interaction-mode
-          python-mode)
-         . flycheck-mode)
-  :config
-  (setq-default flycheck-disabled-checkers '(emacs-lisp-checkdoc))
-  (flycheck-mode 1))
+#+begin_src emacs-lisp
+(defvar skw/eglot-servers
+  '(((c-mode c-ts-mode c++-mode c++-ts-mode) . "clangd")
+    ((python-mode python-ts-mode)            . "pyright-langserver")
+    ((sh-mode bash-ts-mode)                  . "bash-language-server"))
+  "Alist of (MAJOR-MODES . EXECUTABLE) for which `eglot' is started.")
+
+(defun skw/eglot-ensure-if-server ()
+  "Start `eglot' if a server for the current major mode is installed."
+  (let ((server (cdr (seq-find (lambda (entry)
+                                 (apply #'derived-mode-p (car entry)))
+                               skw/eglot-servers))))
+    (when (and server (executable-find server))
+      (eglot-ensure))))
+
+(defun skw/eglot-format-on-save ()
+  "Format the buffer with the language server before saving.
+Installed when `eglot' starts managing the buffer, removed when it stops."
+  (if (eglot-managed-p)
+      (add-hook 'before-save-hook #'eglot-format-buffer -10 t)
+    (remove-hook 'before-save-hook #'eglot-format-buffer t)))
+
+(use-package eglot
+  :ensure nil ;; built-in
+  :hook ((c-mode c-ts-mode c++-mode c++-ts-mode
+          python-mode python-ts-mode sh-mode bash-ts-mode)
+         . skw/eglot-ensure-if-server)
+  :hook (eglot-managed-mode . skw/eglot-format-on-save)
+  :bind (:map eglot-mode-map
+              ("C-c e r" . eglot-rename)
+              ("C-c e a" . eglot-code-actions)
+              ("C-c e f" . eglot-format))
+  :custom
+  (eglot-autoshutdown t))
+
+(use-package flymake
+  :ensure nil ;; built-in
+  :diminish flymake-mode "check"
+  :hook (emacs-lisp-mode . flymake-mode)
+  :bind (("<f6>" . flymake-mode)
+         :map flymake-mode-map
+         ("C-c e l" . flymake-show-buffer-diagnostics)))
+#+end_src
+
+***** Tree-sitter
+
+Emacs ≥ 29 ships tree-sitter major modes. Files are remapped to them only when
+the matching grammar is installed (=tree-sitter-c=, =tree-sitter-python=,
+=tree-sitter-bash= Arch packages, or =M-x treesit-install-language-grammar=;
+there is no Arch package for the C++ grammar, so =c++-ts-mode= is only used
+after installing it by hand).
+
+#+begin_src emacs-lisp
+(setq treesit-language-source-alist
+      '((c      "https://github.com/tree-sitter/tree-sitter-c")
+        (cpp    "https://github.com/tree-sitter/tree-sitter-cpp")
+        (python "https://github.com/tree-sitter/tree-sitter-python")
+        (bash   "https://github.com/tree-sitter/tree-sitter-bash")))
+
+(dolist (remap '((c      c-mode      . c-ts-mode)
+                 (cpp    c++-mode    . c++-ts-mode)
+                 (python python-mode . python-ts-mode)
+                 (bash   sh-mode     . bash-ts-mode)))
+  (when (treesit-language-available-p (car remap))
+    (add-to-list 'major-mode-remap-alist (cdr remap))))
 #+end_src
 
 ***** =rainbows=
 
 I need colors in my life!
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (use-package rainbow-delimiters
   :ensure t
   :hook ((prog-mode) . rainbow-delimiters-mode))
-
-(use-package rainbow-identifiers
-  :ensure t
-  :hook ((prog-mode) . rainbow-identifiers-mode))
 
 ;; Display the color identifier's color as background
 (use-package rainbow-mode
@@ -1402,14 +1506,15 @@ I need colors in my life!
 ***** =yasnippet=
 
 Note that personal snippets (=skw/d-snippets=) must be added before the
-defaults (=yas-installed-snippets-dir=) to effectively override them.
+defaults (=yas-installed-snippets-dir=) to effectively override them. =TAB=
+expands a snippet when there is one at point (yasnippet's default, conditional
+binding) and otherwise falls through to =company= / indentation.
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (use-package yasnippet
   :ensure t
   :diminish yas-minor-mode "ys"
-  :bind (("<tab>" . #'yas-maybe-expand)
-         ("C-c y v" . #'yas-visit-snippet-file)
+  :bind (("C-c y v" . #'yas-visit-snippet-file)
          ("C-c y n" . #'yas-new-snippet)
          ("C-c y y" . #'yas-insert-snippet))
   :init
@@ -1426,22 +1531,21 @@ defaults (=yas-installed-snippets-dir=) to effectively override them.
 
 Some basic K&R style settings.
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (require 'cc-mode)
 (setq c-default-style "k&r"
-      c-basic-indent 4
       c-basic-offset 4)
 #+end_src
 
 ***** conf-mode
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (skw/add-auto-mode 'conf-mode
-                   "\\.conf$"
-                   "\\.config$"
-                   "\\.configuration$"
-                   "\\.gitconfig$"
-                   "\\.gitignore$")
+                   "\\.conf\\'"
+                   "\\.config\\'"
+                   "\\.configuration\\'"
+                   "\\.gitconfig\\'"
+                   "\\.gitignore\\'")
 #+end_src
 
 ***** haskell
@@ -1454,7 +1558,7 @@ $ cabal update
 $ cabal install happy hasktags hindent hlint
 #+end_src
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (use-package haskell-mode
   :ensure t
   :defer t
@@ -1487,14 +1591,14 @@ $ cabal install happy hasktags hindent hlint
 
 Display information about a variable or function at point with =eldoc=.
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (add-hook 'emacs-lisp-mode-hook 'turn-on-eldoc-mode)
 (add-hook 'lisp-interaction-mode-hook 'turn-on-eldoc-mode)
 #+end_src
 
 Summon an =ielm= repl in a separate window with =C-c l i=.
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (global-set-key (kbd "C-c l i") 'skw/ielm)
 
 (defun skw/ielm ()
@@ -1507,19 +1611,16 @@ Summon an =ielm= repl in a separate window with =C-c l i=.
 
 Eval the s-expr at point and print the result with =C-x j=.
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (define-key lisp-interaction-mode-map (kbd "C-x j") 'eval-print-last-sexp)
 #+end_src
 
 ***** markdown
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (use-package markdown-mode
-  :ensure t
+  :ensure t ;; its autoloads already register .md / .markdown
   :config
-  (skw/add-auto-mode 'markdown-mode
-                     "\\.md$"
-                     "\\.mdown$")
   (add-hook 'markdown-mode-hook #'auto-fill-mode)
 
   ;; highlight code blocks without changing fonts
@@ -1530,21 +1631,19 @@ Eval the s-expr at point and print the result with =C-x j=.
 
 ***** python
 
-#+begin_src emacs-lisp :tangle yes
+Formatting on save is handled by =eglot= (see above).
+
+#+begin_src emacs-lisp
 (setq python-indent-offset 4)
 (skw/add-auto-mode 'python-mode
-                   "\\.sage$")
-
-(use-package py-autopep8
-  :ensure t
-  :hook (python-mode . py-autopep8-mode))
+                   "\\.sage\\'")
 
 #+end_src
 
 ***** web
 ******* =emmet=
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (use-package emmet-mode
   :ensure t
   :diminish emmet-mode "em"
@@ -1555,13 +1654,13 @@ Eval the s-expr at point and print the result with =C-x j=.
 
 Colorize html tags.
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (use-package htmlize :ensure t :defer t)
 #+end_src
 
 ******* =js-mode=
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (defun skw/js-options ()
   "My conf for js-mode-hook."
   (setq js-indent-level 2))
@@ -1571,7 +1670,7 @@ Colorize html tags.
 
 ******* =web-mode=
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (use-package web-mode
   :ensure t
   :defer t
@@ -1583,7 +1682,7 @@ Colorize html tags.
 
 ***** yaml
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (use-package yaml-mode
   :ensure t
   :defer t)
@@ -1611,7 +1710,7 @@ File extensions for which org-mode should be the default major mode. Plain
 =.txt= files are deliberately *not* included: =requirements.txt=,
 =CMakeLists.txt= and friends are not Org documents.
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (skw/add-auto-mode 'org-mode
                    "\\.org\\'"
                    "\\.org_archive\\'"
@@ -1625,7 +1724,7 @@ File extensions for which org-mode should be the default major mode. Plain
 
 Packages from [[https://orgmode.org/worg/org-contrib/][org-contrib]].
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (use-package org-contrib
   :ensure t
   :defer t)
@@ -1639,7 +1738,7 @@ Packages from [[https://orgmode.org/worg/org-contrib/][org-contrib]].
 Org buffers start with folded and truncated content. I like to use an odd number
 of stars for the headers and dim the leading ones.
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (setq org-startup-folded t
       org-startup-truncated t
       org-odd-levels-only t
@@ -1648,13 +1747,13 @@ of stars for the headers and dim the leading ones.
 
 Indent paragraphes according to outline structure.
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (setq org-startup-indented t)
 #+end_src
 
 When adding a heading or item, make sure the cursor goes to the end of the line first.
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (setq org-blank-before-new-entry '((heading . nil) (plain-list-item . nil))
       org-M-RET-may-split-line nil)
 #+end_src
@@ -1664,7 +1763,7 @@ When adding a heading or item, make sure the cursor goes to the end of the line 
 :CUSTOM_ID: Org-links
 :END:
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (define-key global-map (kbd "C-c M-l") 'org-store-link)
 (define-key global-map (kbd "C-c C-l") 'org-insert-link-global)
 (define-key org-mode-map (kbd "C-c M-o") 'org-toggle-link-display)
@@ -1675,9 +1774,9 @@ When adding a heading or item, make sure the cursor goes to the end of the line 
 :CUSTOM_ID: Org-refile
 :END:
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (setq org-refile-use-outline-path 'file ;; Include filename in path
-      org-outline-path-complete-in-steps nil ;; Play nice with ido
+      org-outline-path-complete-in-steps nil ;; Play nice with vertico
       org-refile-allow-creating-parent-nodes 'confirm ;; Create structure if needed
       org-refile-use-cache nil) ;; No need to cache anything
 #+end_src
@@ -1687,24 +1786,23 @@ When adding a heading or item, make sure the cursor goes to the end of the line 
 :CUSTOM_ID: Org-exporting
 :END:
 
-Include the main exporters and set the right encoding.
+Include the main exporters and set the right encoding. The export engine
+(=ox=) is only loaded on the first =C-c C-e=, so everything here waits for it.
 
-#+begin_src emacs-lisp :tangle yes
-(require 'ox-md)
-(require 'ox-org)
+#+begin_src emacs-lisp
+(setq org-html-postamble nil
+      org-export-with-section-numbers nil
+      org-export-with-toc nil
+      org-export-coding-system 'utf-8
+      org-export-with-broken-links t)
+
+(with-eval-after-load 'ox
+  (require 'ox-md)
+  (require 'ox-org))
 
 (use-package ox-rss
   :ensure t
   :after ox)
-
-(use-package ox-html
-  :ensure nil
-  :init
-  (setq org-html-postamble nil
-        org-export-with-section-numbers nil
-        org-export-with-toc nil
-        org-export-coding-system 'utf-8
-        org-export-with-broken-links t))
 #+end_src
 
 *** Structure Templates
@@ -1715,7 +1813,7 @@ Include the main exporters and set the right encoding.
 With [[https://orgmode.org/manual/Structure-Templates.html][org-tempo]], typing =<s <tab>= inserts a code block while =C-c k= prompts for
 a template type to be inserted at point.
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (use-package org-tempo
   :ensure nil
   :after org)
@@ -1724,7 +1822,7 @@ a template type to be inserted at point.
 
 Here my preferences when it comes to code blocks.
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 ;; Navigate between source blocks
 (define-key org-mode-map (kbd "C-c C-f") 'org-next-block)
 (define-key org-mode-map (kbd "C-c C-b") 'org-previous-block)
@@ -1739,29 +1837,22 @@ Here my preferences when it comes to code blocks.
 :CUSTOM_ID: Org-babel
 :END:
 
-Languages which can be evaluated in Org buffers.
+Languages which can be evaluated in Org buffers. Each entry loads its
+=ob-<lang>= library at start-up, so the list is kept to what is actually used.
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (org-babel-do-load-languages
  'org-babel-load-languages
- '((awk . t)
-   (C . t)
+ '((C . t)
    (dot . t)
    (emacs-lisp . t)
-   (gnuplot . t)
-   (haskell . t)
-   (js . t)
-   (org . t)
-   (perl . t)
-   (plantuml . t)
    (python . t)
-   (ruby . t)
    (shell . t)))
 #+end_src
 
 Do prompt before executing any code block.
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (setq org-confirm-babel-evaluate t)
 #+end_src
 
@@ -1773,7 +1864,7 @@ Do prompt before executing any code block.
 Reset agenda files and commands, they will be added by other configuration files later
 on.
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (define-key global-map (kbd "C-c a") 'org-agenda)
 
 (setq org-agenda-files '()
@@ -1782,7 +1873,7 @@ on.
 
 Some personal display preferences.
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (setq org-agenda-compact-blocks nil
       org-agenda-dim-blocked-tasks nil
       org-agenda-time-leading-zero t
@@ -1800,7 +1891,7 @@ Some personal display preferences.
 [[https://howardism.org/Technical/Emacs/capturing-intro.html][Here]] is an introduction to [[https://orgmode.org/manual/Capture.html][org-capture]]. Hitting =C-c c= from anywhere in Emacs
 will prompt for a capture template.
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (define-key global-map (kbd "C-c c") 'org-capture)
 
 (setq org-capture-templates '()) ;; reset templates
@@ -1814,7 +1905,7 @@ will prompt for a capture template.
 
 Here are some convenience options related to state changes:
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 ;; This enables fast selection for TODO keywords
 ;; Hitting "C-c C-t d" will select "DONE" for example
 (setq org-use-fast-todo-selection t)
@@ -1834,7 +1925,7 @@ Here are some convenience options related to state changes:
 :CUSTOM_ID: Org-tags
 :END:
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (setq org-tags-column -79) ;; Align tags to the right
 #+end_src
 
@@ -1845,7 +1936,7 @@ Here are some convenience options related to state changes:
 
 Making the property uppercase like the others.
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (setq org-effort-property "EFFORT")
 #+end_src
 
@@ -1856,7 +1947,7 @@ Making the property uppercase like the others.
 
 Move priorities with =S-Up= and =S-Down=.
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (setq org-enable-priority-commands t)
 #+end_src
 
@@ -1865,7 +1956,7 @@ Move priorities with =S-Up= and =S-Down=.
 See [[file:my_elisp/org-archive-subtree-hierarchical.el][org-archive-subtree-hierarchical.el]] on how to preserve the subtree's
 structure while archiving.
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (require 'org-archive-subtree-hierarchical)
 (setq org-archive-default-command 'org-archive-subtree-hierarchical)
 #+end_src
@@ -1875,7 +1966,7 @@ structure while archiving.
 :CUSTOM_ID: Org-misc
 :END:
 
-#+begin_src emacs-lisp :tangle yes
+#+begin_src emacs-lisp
 (setq org-fold-catch-invisible-edits 'show-and-error) ;; do not edit invisible regions
 
 ;; Still allow S-<arrow> to switch between windows
