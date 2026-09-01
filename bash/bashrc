@@ -40,10 +40,16 @@ alias emc=${EDITOR}
 
 
 # --- Nicer prompt ---
+__prompt_git() {
+    local b
+    b=$(git symbolic-ref --short -q HEAD 2>/dev/null) || return
+    printf ' (%s)' "$b"
+}
+
 if [ $(id -u) == "0" ]; then
-    PS1='\[\e[0;31m\]\u\[\e[m\]@\h:\[\e[0;35m\]\w\[\e[m\]\[\e[0;31m\]\n$\[\e[m\] '
+    PS1='\[\e[0;31m\]\u\[\e[m\]@\h:\[\e[0;35m\]\w\[\e[0;33m\]$(__prompt_git)\[\e[m\]\[\e[0;31m\]\n$\[\e[m\] '
 else
-    PS1='\[\e[0;32m\]\u\[\e[m\]@\h:\[\e[0;35m\]\w\[\e[m\]\[\e[0;32m\]\n$\[\e[m\] '
+    PS1='\[\e[0;32m\]\u\[\e[m\]@\h:\[\e[0;35m\]\w\[\e[0;33m\]$(__prompt_git)\[\e[m\]\[\e[0;32m\]\n$\[\e[m\] '
 fi
 
 
