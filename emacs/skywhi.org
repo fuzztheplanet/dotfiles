@@ -3,8 +3,51 @@
 #+OPTIONS: toc:2 num:nil H:8
 #+OPTIONS: tags:nil
 #+OPTIONS: html-postamble:nil
-#+PROPERTY: header-args:emacs-lisp :tangle (expand-file-name "emacs/skywhi.el" (or (getenv "XDG_CACHE_HOME") "~/.cache"))
 
+* Table of Contents
+:PROPERTIES:
+:CUSTOM_ID: TOC
+:END:
+
+Hand-maintained: every level-1 and level-3 heading has a =CUSTOM_ID= and is
+linked here. Add a line when adding a section.
+
+- [[#About][About]]
+- [[#Prelude][Prelude]]
+  - [[#Prelude-lexical][Lexical Binding]]
+  - [[#Prelude-server][Emacs Server]]
+  - [[#Prelude-files][User Files]]
+  - [[#Prelude-customize][Customize File]]
+  - [[#Prelude-package][Package Initialization]]
+  - [[#Prelude-libs][Elisp Utility Libraries]]
+- [[#General][General Settings]]
+  - [[#General-keys][Keybindings Cheatsheet]]
+  - [[#General-startup][Start-up and Sane Defaults]]
+  - [[#General-ui][UI Tweaks]]
+  - [[#General-files][Files]]
+  - [[#General-buffers][Buffers]]
+  - [[#General-editing][Editing]]
+  - [[#General-misc][Misc Utilities]]
+- [[#Programming][Programming]]
+  - [[#Programming-general][General Stuff]]
+  - [[#Programming-specific][Language Specific]]
+- [[#Org][Org-mode]]
+  - [[#Org-files][File extensions]]
+  - [[#Org-contrib][Contrib Repository]]
+  - [[#Org-outline][Outline]]
+  - [[#Org-links][Links]]
+  - [[#Org-refile][Refile]]
+  - [[#Org-exporting][Exporting]]
+  - [[#Org-tempo][Structure Templates]]
+  - [[#Org-babel][Babel]]
+  - [[#Org-agenda][Agenda]]
+  - [[#Org-capture][Capture]]
+  - [[#Org-todos][TODOs]]
+  - [[#Org-tags][Tags]]
+  - [[#Org-effort][Effort]]
+  - [[#Org-priorities][Priorities]]
+  - [[#Org-archiving][Archiving]]
+  - [[#Org-misc][Misc Options]]
 
 * About
 :PROPERTIES:
@@ -37,10 +80,7 @@ Here are some setups that helped me build this one, you should check them out!
 :END:
 
 This block is tangled first so that the generated =skywhi.el= starts with the
-lexical-binding cookie (Emacs ≥ 30 warns about files without it). Every block
-is tangled to =$XDG_CACHE_HOME/emacs/skywhi.el= thanks to the file-level
-=header-args= property at the top of this document, and =init.el=
-byte-compiles the result so that it gets native-compiled too.
+lexical-binding cookie (Emacs ≥ 30 warns about files without it).
 
 #+begin_src emacs-lisp
 ;;; skywhi.el --- Tangled from skywhi.org  -*- lexical-binding: t -*-
@@ -205,6 +245,9 @@ group is muted.
 #+end_src
 
 *** Elisp Utility Libraries
+:PROPERTIES:
+:CUSTOM_ID: Prelude-libs
+:END:
 
 Gimme [[https://github.com/magnars/dash.el][dash]].
 
@@ -228,23 +271,24 @@ topic.
 
 ***** Windows, frames, scrolling
 
-| Key                  | Bound to                                                  |
-|----------------------+-----------------------------------------------------------|
-| =C-z=                | =delete-other-windows=                                    |
-| =C-x <arrows>=       | =buf-move-{up,down,left,right}=                           |
-| =C-c <left/right>=   | =winner-undo= / =winner-redo= (built-in =winner-mode=)    |
-| =S-<arrows>= (Org)   | =windmove-*= (falls through from Org shift commands)      |
-| =C-v=                | =scroll-down= (page *up*)                                 |
-| =M-n=                | =scroll-up= (page *down*)                                 |
-| =C-x v <up/down>=    | scroll the *other* window                                 |
-| =C-x 5 0=, =C-x M-x= | =delete-frame= (keep server)                              |
-| =C-x C-c=            | =save-buffers-kill-terminal=; with =C-u= kills the server |
-| =<f5>=               | =revert-buffer=                                           |
-| =<f7>= / =S-<f7>=    | =toggle-truncate-lines= / =auto-fill-mode=                |
-| =C-c M-p=            | =font-lock-mode=                                          |
-| =C-c t t=            | =ef-themes-toggle= (=ef-dark= ⇄ =ef-bio=)                 |
-| =C-c t s=            | =ef-themes-select=                                        |
-| =C-c t d=            | =skw/disable-all-themes= (back to stock colours)          |
+| Key                  | Bound to                                                                 |
+|----------------------+--------------------------------------------------------------------------|
+| =C-x o=, =M-o=       | =ace-window= (letter = jump; =x= =m= =o= =F= =v= =b= =j= =?= = dispatch) |
+| =C-z=                | =delete-other-windows=                                                   |
+| =C-x <arrows>=       | =buf-move-{up,down,left,right}=                                          |
+| =C-c <left/right>=   | =winner-undo= / =winner-redo= (built-in =winner-mode=)                   |
+| =S-<arrows>= (Org)   | =windmove-*= (falls through from Org shift commands)                     |
+| =C-v=                | =scroll-down= (page *up*)                                                |
+| =M-n=                | =scroll-up= (page *down*)                                                |
+| =C-x v <up/down>=    | scroll the *other* window                                                |
+| =C-x 5 0=, =C-x M-x= | =delete-frame= (keep server)                                             |
+| =C-x C-c=            | =save-buffers-kill-terminal=; with =C-u= kills the server                |
+| =<f5>=               | =revert-buffer=                                                          |
+| =<f7>= / =S-<f7>=    | =toggle-truncate-lines= / =auto-fill-mode=                               |
+| =C-c M-p=            | =font-lock-mode=                                                         |
+| =C-c t t=            | =ef-themes-toggle= (=ef-dark= ⇄ =ef-bio=)                                |
+| =C-c t s=            | =ef-themes-select=                                                       |
+| =C-c t d=            | =skw/disable-all-themes= (back to stock colours)                         |
 
 ***** Minibuffer & completion (=vertico= / =consult= / =embark=)
 
@@ -287,7 +331,7 @@ topic.
 | =C-c i=                                         | =skw/cleanup-buffer-or-region= (untabify + indent + trailing ws) |
 | =C-c q=, =M-q=                                  | =fill-paragraph=                                                 |
 | =M-l=                                           | =downcase-word=                                                  |
-| =M-o=                                           | =capitalize-word=                                                |
+| =M-c=                                           | =capitalize-word=                                                |
 | =M-i=                                           | =upcase-word=                                                    |
 | =C-x M-l=                                       | =downcase-region=                                                |
 | =C-x C-l=                                       | =goto-line=                                                      |
@@ -306,7 +350,7 @@ topic.
 
 | Key                           | Bound to                                                    |
 |-------------------------------+-------------------------------------------------------------|
-| =TAB=                         | snippet expansion, else =company-indent-or-complete-common= |
+| =TAB= (prog modes)            | snippet expansion, else =company-indent-or-complete-common= |
 | =M-/=                         | =company-complete=                                          |
 | =<f10>= / =S-<f10>=           | =company-mode= / =global-company-mode=                      |
 | =C-n= / =C-p= (company popup) | next / previous candidate                                   |
@@ -457,10 +501,37 @@ Toogle *font-lock-mode* on / off.
 
 ***** Windows
 
-Move between windows with =C-x <key>=.
+I mainly use [[https://github.com/abo-abo/ace-window][ace-window]] with =C-x o = or =M-o= to change between windows.
+
+| Dispatch Key | Action                                            |
+|--------------+---------------------------------------------------|
+| =x=          | delete that window                                |
+| =m=          | swap the current window with that one             |
+| =M=          | move the current buffer to that window            |
+| =c=          | copy the current buffer into that window          |
+| =o=          | keep only that window                             |
+| =F=          | split that window fairly (=aw-split-window-fair=) |
+| =v=          | split that window vertically                      |
+| =b=          | split that window horizontally                    |
+| =j=          | pick a buffer to show in that window              |
+| =n=          | flip back to the previously selected window       |
+| =?=          | show the list of dispatch keys                    |
 
 #+begin_src emacs-lisp
+(use-package ace-window
+  :ensure t
+  :bind (("C-x o" . ace-window)
+         ("M-o" . ace-window))
+  :custom
+  (aw-keys '(?q ?s ?d ?f ?j ?k ?l ?m))
+  (aw-scope 'frame)
+  (aw-dispatch-always t)
+  (aw-minibuffer-flag t))
+#+end_src
 
+Swap buffers between windows with =C-x <arrows>=.
+
+#+begin_src emacs-lisp
 (use-package buffer-move
   :ensure t
   :bind (("C-x <up>" .    'buf-move-up)
@@ -961,9 +1032,12 @@ Some "textual" cosmetics.
 
 ***** Case change
 
+=M-o= used to hold =capitalize-word=; it now belongs to =ace-window=, so
+=capitalize-word= stays on its default =M-c=.
+
 #+begin_src emacs-lisp
 (global-set-key (kbd "M-l") 'downcase-word)
-(global-set-key (kbd "M-o") 'capitalize-word)
+(global-set-key (kbd "M-c") 'capitalize-word)
 (global-set-key (kbd "M-i") 'upcase-word)
 #+end_src
 
@@ -1103,23 +1177,25 @@ overriding the colours at load time.
 
 I am using =company-mode= for auto-completion, switching it on/off with
 =<F10>= (current buffer) and =S-<F10>= (globally). Navigate between completions
-with =C-n= and =C-p= or with the up/down arrows. =TAB= (the real terminal key,
-not =<tab>=) indents, or completes when the line is already indented; it is
-bound in =company-mode-map= so that =yasnippet='s own conditional =TAB=
-binding gets the first shot at expanding a snippet. =company-capf= (the
-default first backend) is what =eglot= feeds.
+with =C-n= and =C-p= or with the up/down arrows.
+
+In programming modes, =<tab>= indents or completes when the line is already
+indented.
 
 #+begin_src emacs-lisp
+(defun skw/company-tab-in-prog-mode ()
+  "Bind TAB to `company-indent-or-complete-common' in this major mode."
+  (local-set-key (kbd "TAB") #'company-indent-or-complete-common))
+
 (use-package company
   :ensure t
+  :demand t
   :diminish company-mode "Com"
+  :hook (prog-mode . skw/company-tab-in-prog-mode)
   :bind
   (("<f10>"   . company-mode)
    ("S-<f10>" . global-company-mode)
    ("M-/" . company-complete)
-
-   :map company-mode-map
-   ("TAB" . company-indent-or-complete-common)
 
    :map company-active-map
    ("C-n" . company-select-next)
@@ -1954,6 +2030,9 @@ Move priorities with =S-Up= and =S-Down=.
 #+end_src
 
 *** Archiving
+:PROPERTIES:
+:CUSTOM_ID: Org-archiving
+:END:
 
 See [[file:my_elisp/org-archive-subtree-hierarchical.el][org-archive-subtree-hierarchical.el]] on how to preserve the subtree's
 structure while archiving.
