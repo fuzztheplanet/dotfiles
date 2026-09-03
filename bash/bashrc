@@ -194,13 +194,6 @@ my-remove-bom() {
     sed -i '1s/^\xEF\xBB\xBF//' "$1"
 }
 
-# --- docker ---
-alias drun='docker run --rm '
-alias drunhere='drun -v `pwd`:/work -w /work '
-alias drunit='drun -it '
-alias drunithere='drunit -v `pwd`:/work -w /work '
-alias dshell='drunit --entrypoint=/bin/bash '
-alias dshellhere='drunithere --entrypoint=/bin/bash '
 
 if [ -x "$(command -v fzf)" ]; then
 
