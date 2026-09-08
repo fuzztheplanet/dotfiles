@@ -7,7 +7,7 @@ PKG_UNINSTALL_FUNC="yay -Rsn --noconfirm"
 
 ### Bash
 _register_module "bash"
-bash_pkgs="bash bash-completion tree unzip curl ripgrep fd fzf bat"
+bash_pkgs="bash bash-completion tree unzip curl ripgrep fd fzf bat jq"
 
 install_bash() {
     if [ "$1" = "install" ]; then
