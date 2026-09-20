@@ -1883,6 +1883,18 @@ Include the main exporters and set the right encoding. The export engine
   :after ox)
 #+end_src
 
+[[https://github.com/marsmining/ox-twbs][ox-twbs]] exports an Org file to a standalone HTML page styled with Twitter
+Bootstrap (=M-x org-twbs-export-to-html=, also under =C-c C-e w=). For
+publishing projects, =org-twbs-publish-to-html= can be used as the
+=:publishing-function=. The HTML head can be customised with =org-twbs-head=
+or per file with =#+HTML_HEAD:=.
+
+#+begin_src emacs-lisp
+(use-package ox-twbs
+  :ensure t
+  :after ox)
+#+end_src
+
 *** Structure Templates
 :PROPERTIES:
 :CUSTOM_ID: Org-tempo

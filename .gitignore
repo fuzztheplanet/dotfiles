@@ -11,13 +11,11 @@
 !bash/profile
 
 !bin/
-!bin/attach-tmux.sh
 !bin/clip.sh
+!bin/ft.sh
 !bin/gen-cool-ssh-keys.sh
 !bin/grab-openbsd.sh
-!bin/kill-tmux.sh
 !bin/preview-file.sh
-!bin/spawn-tmux.sh
 !bin/start-vm.sh
 !bin/tmux-blog.sh
 !bin/tmux-monitor.sh

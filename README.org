@@ -47,7 +47,10 @@ leverages =fzf= a little bit:
 
 Utility scripts that I use more or less often. Careful, some are quick hacks.
 The important one is probably =clip.sh=, the single clipboard backend that tmux,
-bash, i3 & co go through.
+bash, i3 & co go through. =ft.sh= is the fzf tmux session picker shared by bash
+(=ft=), the tmux popup (=prefix C-s=) and i3 (=Mod+Return=): Enter attaches to
+the selected session or creates one named after the query, =C-o= opens a new
+grouped view, =C-r= kills, =M-n= renames.
 
 *** emacs
 
@@ -74,7 +77,7 @@ A fairly standard [[https://i3wm.org/][i3]] configuration with =Mod4= as modifie
 vim-style =h= =j= =k= =l= to move focus, workspaces on the azerty number row and
 more. Four scratchpads are one key away: a terminal, a Python REPL, the tmux
 system monitor and newsboat. Other shortcuts launch a terminal, dmenu, an Emacs
-client, the agenda, ranger, Firefox, the tmux session helpers, screenshots with
+client, the agenda, ranger, Firefox, the fzf tmux session picker, screenshots with
 =scrot= and the =clipmenu= clipboard history, etc.
 
 It uses [[https://i3wm.org/i3bar/][i3bar]] and [[https://i3wm.org/i3lock/][i3lock]].
@@ -99,7 +102,8 @@ and PDFs, a =rifle.conf= to pick openers, and a few custom commands, notably
 
 An opinionated [[https://github.com/tmux/tmux][tmux]] configuration: Emacs key bindings, =prefix arrows= or
 =prefix h= =j= =k= =l= to move between panes, splits that keep the current path,
-mouse support and =prefix b= to reach a nested tmux over ssh. Every copy,
+mouse support, =prefix C-s= for the fzf session picker in a popup and =prefix b=
+to reach a nested tmux over ssh. Every copy,
 including OSC 52 from Emacs, goes through =clip.sh= into the system clipboard.
 
 *** vimium
