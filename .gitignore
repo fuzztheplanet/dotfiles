@@ -47,8 +47,8 @@
 !newsboat/config
 
 !profiles/
-!profiles/arch-desktop
 !profiles/arch-laptop
+!profiles/arch-vps
 
 !ranger/
 !ranger/commands.py

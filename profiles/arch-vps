@@ -1,6 +1,11 @@
 #!/bin/sh
 
-PROFILE_NAME="arch-laptop"
+# Same setup as arch-laptop. The only difference: the bash and tmux modules also
+# write a small untracked file (~/.bashrc.local and ~/.config/tmux/local.conf)
+# so that the prompt and the tmux status bar are blue instead of green, which
+# makes it obvious at a glance whether a shell runs here or on the laptop.
+
+PROFILE_NAME="arch-vps"
 PKG_INSTALL_FUNC="yay -Syu --noconfirm"
 PKG_UNINSTALL_FUNC="yay -Rsn --noconfirm"
 
@@ -21,9 +26,12 @@ deploy_bash() {
     if [ "$1" = "deploy" ]; then
         ln -sfn "${SRC_DIR}/bash/bashrc" "${DEST_DIR}/.bashrc"
         ln -sfn "${SRC_DIR}/bash/profile" "${DEST_DIR}/.bash_profile"
+        # Per-host settings sourced by bashrc; 34 is ANSI blue
+        printf '%s\n' "PROMPT_COLOR=34" > "${DEST_DIR}/.bashrc.local"
     elif [ "$1" = "remove" ]; then
         _rm "${DEST_DIR}/.bashrc"
         _rm "${DEST_DIR}/.bash_profile"
+        _rm "${DEST_DIR}/.bashrc.local"
     fi
 }
 
@@ -218,6 +226,9 @@ deploy_tmux() {
     if [ "$1" = "deploy" ]; then
         mkdir -p "${DEST_DIR}/.config/tmux"
         ln -sfn "${SRC_DIR}/tmux/tmux.conf" "${DEST_DIR}/.config/tmux/tmux.conf"
+        # Per-host settings sourced last by tmux.conf: blue bar instead of green
+        printf '%s\n' "set -g status-bg blue" "set -g status-fg white" \
+            > "${DEST_DIR}/.config/tmux/local.conf"
     elif [ "$1" = "remove" ]; then
         _rm "${DEST_DIR}/.config/tmux"
     fi

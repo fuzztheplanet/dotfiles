@@ -31,6 +31,14 @@ Deploying only creates symlinks back into this repository, so editing a file
 here is immediately live. The =.gitignore= is an allow-list: everything is
 ignored unless explicitly listed, which keeps runtime state out of the history.
 
+Two profiles exist, =arch-laptop= and =arch-vps=, with the same modules and
+packages. Anything that must differ per machine goes through a small untracked
+file that the profile writes at deploy time rather than through separate copies
+of the config. Those are =~/.bashrc.local=, sourced by =bashrc=, and
+=~/.config/tmux/local.conf=, sourced last by =tmux.conf=; the VPS profile uses
+them to turn the prompt and the tmux status bar blue so that a shell on the
+server is recognizable at a glance.
+
 * Content
 *** bash
 
@@ -42,6 +50,11 @@ leverages =fzf= a little bit:
     which opens it in Emacs or with =rifle=.
   - =fy= installs Arch packages with a preview, =fdc= / =fdi= browse docker
     containers and images, and =M-d= is a fuzzy =cd=.
+
+The prompt is green for a normal user and red for root. A profile can override
+the color by writing =PROMPT_COLOR=<ansi code>= into =~/.bashrc.local=, which
+=bashrc= sources before building =PS1=; the VPS profile sets =34= (blue). Root
+stays red everywhere.
 
 *** bin
 
@@ -105,6 +118,9 @@ An opinionated [[https://github.com/tmux/tmux][tmux]] configuration: Emacs key b
 mouse support, =prefix C-s= for the fzf session picker in a popup and =prefix b=
 to reach a nested tmux over ssh. Every copy,
 including OSC 52 from Emacs, goes through =clip.sh= into the system clipboard.
+The status bar is green; =tmux.conf= ends by sourcing =~/.config/tmux/local.conf=
+if it exists, so a profile can override any setting per host. The VPS profile
+writes a blue bar there.
 
 *** vimium
 

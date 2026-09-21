@@ -39,6 +39,13 @@ alias e=${EDITOR}
 alias emc=${EDITOR}
 
 
+# --- Per-host settings ---
+# ~/.bashrc.local is written by the profile at deploy time (see profiles/) and
+# is not tracked. It currently sets PROMPT_COLOR so that the prompt looks
+# different on each machine (e.g. blue on the VPS).
+[ -f "${HOME}/.bashrc.local" ] && . "${HOME}/.bashrc.local"
+
+
 # --- Nicer prompt ---
 __prompt_git() {
     local b
@@ -46,11 +53,12 @@ __prompt_git() {
     printf ' (%s)' "$b"
 }
 
-if [ $(id -u) == "0" ]; then
-    PS1='\[\e[0;31m\]\u\[\e[m\]@\h:\[\e[0;35m\]\w\[\e[0;33m\]$(__prompt_git)\[\e[m\]\[\e[0;31m\]\n$\[\e[m\] '
-else
-    PS1='\[\e[0;32m\]\u\[\e[m\]@\h:\[\e[0;35m\]\w\[\e[0;33m\]$(__prompt_git)\[\e[m\]\[\e[0;32m\]\n$\[\e[m\] '
-fi
+# ANSI color of the user name and of the "$" sign: green by default, whatever
+# ~/.bashrc.local says otherwise, always red for root.
+PROMPT_COLOR="${PROMPT_COLOR:-32}"
+[ "$(id -u)" = "0" ] && PROMPT_COLOR=31
+
+PS1="\[\e[0;${PROMPT_COLOR}m\]\u\[\e[m\]@\h:\[\e[0;35m\]\w\[\e[0;33m\]\$(__prompt_git)\[\e[m\]\[\e[0;${PROMPT_COLOR}m\]\n\$\[\e[m\] "
 
 
 # --- Aliases for standard utils ---
